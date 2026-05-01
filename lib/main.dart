@@ -8,6 +8,7 @@ import 'data/providers/live_data_provider.dart';
 import 'data/providers/alert_provider.dart';
 import 'data/providers/threshold_provider.dart';
 import 'data/providers/command_provider.dart';
+import 'data/services/notification_service.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main_shell.dart';
 
@@ -16,6 +17,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Wire up push notifications
+  await NotificationService.instance.initialize();
+
   runApp(const PoultryApp());
 }
 

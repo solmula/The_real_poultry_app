@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_utils.dart';
 import '../../../data/providers/alert_provider.dart';
 import '../../../data/models/alert_model.dart';
+import 'alert_history_screen.dart';
 
 class AlertsScreen extends StatelessWidget {
   const AlertsScreen({super.key});
@@ -11,6 +12,9 @@ class AlertsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+
     return Scaffold(
       body: SafeArea(
         child: Consumer<AlertProvider>(
@@ -20,7 +24,7 @@ class AlertsScreen extends StatelessWidget {
                 SliverAppBar(
                   floating: true,
                   snap: true,
-                  backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+                  backgroundColor: cardColor,
                   surfaceTintColor: Colors.transparent,
                   title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,7 +34,7 @@ class AlertsScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                          color: textColor,
                         ),
                       ),
                       Text(
@@ -47,6 +51,20 @@ class AlertsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  actions: [
+                    // History button
+                    IconButton(
+                      icon: Icon(Icons.history_rounded, color: textColor),
+                      tooltip: 'Alert History',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AlertHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                   bottom: PreferredSize(
                     preferredSize: const Size.fromHeight(1),
                     child: Container(
@@ -60,7 +78,8 @@ class AlertsScreen extends StatelessWidget {
                 if (alerts.isLoading)
                   const SliverFillRemaining(
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary),
                     ),
                   )
                 else if (alerts.activeCount == 0)
@@ -69,7 +88,8 @@ class AlertsScreen extends StatelessWidget {
                   )
                 else
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    padding:
+                        const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -129,12 +149,37 @@ class AlertsScreen extends StatelessWidget {
               height: 1.5,
             ),
           ),
+          const SizedBox(height: 28),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AlertHistoryScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history_rounded,
+                color: AppColors.primary, size: 16),
+            label: const Text('View Alert History',
+                style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                  color: AppColors.primary.withOpacity(0.4)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 10),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
+// ─── Alert Card ───────────────────────────────────────────────────────────
 class _AlertCard extends StatelessWidget {
   final AlertModel alert;
   final VoidCallback onAcknowledge;
@@ -148,6 +193,7 @@ class _AlertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
     final color = AppUtils.severityColor(alert.severity);
 
     return Container(
@@ -162,15 +208,18 @@ class _AlertCard extends StatelessWidget {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: color.withOpacity(0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(6),
@@ -191,7 +240,7 @@ class _AlertCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                    color: textColor,
                   ),
                 ),
                 const Spacer(),
@@ -215,7 +264,7 @@ class _AlertCard extends StatelessWidget {
                   alert.displayText,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark ? AppColors.textLight : AppColors.textPrimary,
+                    color: textColor,
                     height: 1.4,
                   ),
                 ),
@@ -249,7 +298,8 @@ class _AlertCard extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: color,
                       side: BorderSide(color: color.withOpacity(0.5)),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -273,6 +323,7 @@ class _AlertCard extends StatelessWidget {
   }
 }
 
+// ─── Value Chip ───────────────────────────────────────────────────────────
 class _ValueChip extends StatelessWidget {
   final String label;
   final String value;

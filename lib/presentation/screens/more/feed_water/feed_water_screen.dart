@@ -348,7 +348,7 @@ class _EstimateCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Estimated feed remaining', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                const Text('Estimated feed remaining', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text(
                   data == null ? '--' : '${daysLeft.toStringAsFixed(1)} days',

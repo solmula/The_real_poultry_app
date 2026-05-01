@@ -18,6 +18,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   List<DailyReport> _reports = [];
   bool _loading = true;
   String? _error;
+  int _rangeDays = 14; // 7, 14, 30
 
   @override
   void initState() {
@@ -33,15 +34,18 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   Future<void> _loadReports() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final snap = await FirebaseFirestore.instance
           .collection(FirebasePaths.dailyReports)
           .orderBy('date', descending: true)
-          .limit(30)
+          .limit(_rangeDays)
           .get();
       final reports =
           snap.docs.map((d) => DailyReport.fromFirestore(d)).toList();
-      // reverse so chart goes oldest → newest
       setState(() {
         _reports = reports.reversed.toList();
         _loading = false;
@@ -79,19 +83,27 @@ class _HistoryScreenState extends State<HistoryScreen>
                         color: textColor,
                       )),
                   Text(
-                    _reports.isEmpty ? 'No data' : 'Last ${_reports.length} days',
+                    _reports.isEmpty
+                        ? 'No data'
+                        : 'Last ${_reports.length} days',
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),
               actions: [
-                IconButton(
-                  icon: Icon(Icons.refresh_rounded, color: textColor),
-                  onPressed: () {
-                    setState(() => _loading = true);
+                // Range selector
+                _RangeButton(
+                  selected: _rangeDays,
+                  isDark: isDark,
+                  onSelect: (days) {
+                    setState(() => _rangeDays = days);
                     _loadReports();
                   },
+                ),
+                IconButton(
+                  icon: Icon(Icons.refresh_rounded, color: textColor),
+                  onPressed: _loadReports,
                 ),
               ],
               bottom: TabBar(
@@ -111,7 +123,8 @@ class _HistoryScreenState extends State<HistoryScreen>
           ],
           body: _loading
               ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary))
+                  child: CircularProgressIndicator(
+                      color: AppColors.primary))
               : _error != null
                   ? _buildError()
                   : _reports.isEmpty
@@ -130,132 +143,143 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  // ─── Tabs ────────────────────────────────────────────────────────────────
+  // ─── Tabs ──────────────────────────────────────────────────────────────
 
   Widget _buildEggsTab(bool isDark) {
-    return _ScrollableTab(children: [
-      _ChartCard(
-        title: 'Daily Eggs',
-        subtitle: 'Total eggs collected per day',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.totalEggs.toDouble(),
-          color: AppColors.accent,
+    return _RefreshableTab(
+      onRefresh: _loadReports,
+      children: [
+        _ChartCard(
+          title: 'Daily Eggs',
+          subtitle: 'Total eggs collected per day',
           isDark: isDark,
-          unit: '',
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.totalEggs.toDouble(),
+            color: AppColors.accent,
+            isDark: isDark,
+            unit: '',
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _ChartCard(
-        title: 'Laying Rate',
-        subtitle: 'Percentage of hens laying per day',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.layingRatePct,
-          color: AppColors.statusGood,
+        const SizedBox(height: 16),
+        _ChartCard(
+          title: 'Laying Rate',
+          subtitle: 'Percentage of hens laying per day',
           isDark: isDark,
-          unit: '%',
-          minY: 0,
-          maxY: 100,
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.layingRatePct,
+            color: AppColors.statusGood,
+            isDark: isDark,
+            unit: '%',
+            minY: 0,
+            maxY: 100,
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _SummaryTable(reports: _reports, isDark: isDark),
-    ]);
+        const SizedBox(height: 16),
+        _SummaryTable(reports: _reports, isDark: isDark),
+      ],
+    );
   }
 
   Widget _buildClimateTab(bool isDark) {
-    return _ScrollableTab(children: [
-      _ChartCard(
-        title: 'Average Temperature',
-        subtitle: 'Daily avg temp °C',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.avgTemp,
-          color: AppColors.statusWarning,
+    return _RefreshableTab(
+      onRefresh: _loadReports,
+      children: [
+        _ChartCard(
+          title: 'Average Temperature',
+          subtitle: 'Daily avg temp °C',
           isDark: isDark,
-          unit: '°C',
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.avgTemp,
+            color: AppColors.statusWarning,
+            isDark: isDark,
+            unit: '°C',
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _ChartCard(
-        title: 'Max Ammonia (NH₃)',
-        subtitle: 'Peak NH₃ level per day (ppm)',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.maxNh3,
-          color: AppColors.severityHigh,
+        const SizedBox(height: 16),
+        _ChartCard(
+          title: 'Max Ammonia (NH₃)',
+          subtitle: 'Peak NH₃ level per day (ppm)',
           isDark: isDark,
-          unit: ' ppm',
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.maxNh3,
+            color: AppColors.severityHigh,
+            isDark: isDark,
+            unit: ' ppm',
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _ChartCard(
-        title: 'Light Hours',
-        subtitle: 'Hours of light per day',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.lightHours,
-          color: AppColors.primaryLight,
+        const SizedBox(height: 16),
+        _ChartCard(
+          title: 'Light Hours',
+          subtitle: 'Hours of light per day',
           isDark: isDark,
-          unit: 'h',
-          minY: 0,
-          maxY: 24,
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.lightHours,
+            color: AppColors.primaryLight,
+            isDark: isDark,
+            unit: 'h',
+            minY: 0,
+            maxY: 24,
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 
   Widget _buildFeedTab(bool isDark) {
-    return _ScrollableTab(children: [
-      _ChartCard(
-        title: 'Feed Consumed',
-        subtitle: 'Total feed consumed per day (kg)',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.feedConsumedKg,
-          color: AppColors.primary,
+    return _RefreshableTab(
+      onRefresh: _loadReports,
+      children: [
+        _ChartCard(
+          title: 'Feed Consumed',
+          subtitle: 'Total feed consumed per day (kg)',
           isDark: isDark,
-          unit: ' kg',
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.feedConsumedKg,
+            color: AppColors.primary,
+            isDark: isDark,
+            unit: ' kg',
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _ChartCard(
-        title: 'Feed Conversion Ratio (FCR)',
-        subtitle: 'Feed kg per egg kg — lower is better',
-        isDark: isDark,
-        chart: _LineChart(
-          reports: _reports,
-          getValue: (r) => r.fcr,
-          color: AppColors.severityInfo,
+        const SizedBox(height: 16),
+        _ChartCard(
+          title: 'Feed Conversion Ratio (FCR)',
+          subtitle: 'Feed kg per egg kg — lower is better',
           isDark: isDark,
-          unit: '',
+          chart: _LineChart(
+            reports: _reports,
+            getValue: (r) => r.fcr,
+            color: AppColors.severityInfo,
+            isDark: isDark,
+            unit: '',
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 
   Widget _buildAlertsTab(bool isDark) {
-    return _ScrollableTab(children: [
-      _ChartCard(
-        title: 'Daily Alert Count',
-        subtitle: 'Number of alerts triggered per day',
-        isDark: isDark,
-        chart: _BarChart(
-          reports: _reports,
+    return _RefreshableTab(
+      onRefresh: _loadReports,
+      children: [
+        _ChartCard(
+          title: 'Daily Alert Count',
+          subtitle: 'Number of alerts triggered per day',
           isDark: isDark,
+          chart: _BarChart(reports: _reports, isDark: isDark),
         ),
-      ),
-    ]);
+        const SizedBox(height: 16),
+        _AlertStatsCard(reports: _reports, isDark: isDark),
+      ],
+    );
   }
 
-  // ─── Empty / Error ────────────────────────────────────────────────────────
+  // ─── Empty / Error ────────────────────────────────────────────────────
 
   Widget _buildEmpty(bool isDark) {
     return Center(
@@ -263,7 +287,8 @@ class _HistoryScreenState extends State<HistoryScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.bar_chart_rounded,
-              size: 56, color: AppColors.textSecondary.withOpacity(0.4)),
+              size: 56,
+              color: AppColors.textSecondary.withOpacity(0.4)),
           const SizedBox(height: 16),
           Text('No history yet',
               style: TextStyle(
@@ -275,7 +300,8 @@ class _HistoryScreenState extends State<HistoryScreen>
           const Text(
             'Daily reports will appear here\nonce data starts coming in.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(
+                fontSize: 14, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -304,10 +330,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                     fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: () {
-                setState(() => _loading = true);
-                _loadReports();
-              },
+              onPressed: _loadReports,
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Retry'),
             ),
@@ -318,16 +341,80 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 }
 
-// ─── Scrollable tab wrapper ────────────────────────────────────────────────
-class _ScrollableTab extends StatelessWidget {
-  final List<Widget> children;
-  const _ScrollableTab({required this.children});
+// ─── Range Button ──────────────────────────────────────────────────────────
+class _RangeButton extends StatelessWidget {
+  final int selected;
+  final bool isDark;
+  final void Function(int) onSelect;
+
+  const _RangeButton(
+      {required this.selected,
+      required this.isDark,
+      required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      children: children,
+    return PopupMenuButton<int>(
+      initialValue: selected,
+      onSelected: onSelect,
+      color: isDark ? AppColors.cardDark : AppColors.cardLight,
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${selected}d',
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary),
+            ),
+            const Icon(Icons.arrow_drop_down_rounded,
+                color: AppColors.primary, size: 18),
+          ],
+        ),
+      ),
+      itemBuilder: (_) => [7, 14, 30]
+          .map((d) => PopupMenuItem(
+                value: d,
+                child: Text('Last $d days',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: d == selected
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                      color: d == selected
+                          ? AppColors.primary
+                          : (isDark
+                              ? AppColors.textLight
+                              : AppColors.textPrimary),
+                    )),
+              ))
+          .toList(),
+    );
+  }
+}
+
+// ─── Refreshable tab wrapper ───────────────────────────────────────────────
+class _RefreshableTab extends StatelessWidget {
+  final List<Widget> children;
+  final Future<void> Function() onRefresh;
+
+  const _RefreshableTab(
+      {required this.children, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        children: children,
+      ),
     );
   }
 }
@@ -441,21 +528,21 @@ class _LineChart extends StatelessWidget {
                   return const SizedBox.shrink();
                 }
                 final date = reports[idx].date;
-                // show MM/dd
                 final parts = date.split('-');
                 final label = parts.length >= 3
                     ? '${parts[1]}/${parts[2]}'
                     : date;
                 return Text(label,
                     style: const TextStyle(
-                        fontSize: 9, color: AppColors.textSecondary));
+                        fontSize: 9,
+                        color: AppColors.textSecondary));
               },
             ),
           ),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
         ),
         lineBarsData: [
           LineChartBarData(
@@ -465,7 +552,8 @@ class _LineChart extends StatelessWidget {
             barWidth: 2.5,
             dotData: FlDotData(
               show: reports.length <= 10,
-              getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+              getDotPainter: (_, __, ___, ____) =>
+                  FlDotCirclePainter(
                 radius: 3,
                 color: color,
                 strokeWidth: 0,
@@ -488,7 +576,8 @@ class _LineChart extends StatelessWidget {
           touchTooltipData: LineTouchTooltipData(
             getTooltipItems: (spots) => spots.map((s) {
               final idx = s.x.toInt();
-              final date = idx < reports.length ? reports[idx].date : '';
+              final date =
+                  idx < reports.length ? reports[idx].date : '';
               return LineTooltipItem(
                 '$date\n${s.y.toStringAsFixed(1)}$unit',
                 TextStyle(
@@ -558,14 +647,15 @@ class _BarChart extends StatelessWidget {
                     : date;
                 return Text(label,
                     style: const TextStyle(
-                        fontSize: 9, color: AppColors.textSecondary));
+                        fontSize: 9,
+                        color: AppColors.textSecondary));
               },
             ),
           ),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false)),
         ),
         barGroups: reports.asMap().entries.map((e) {
           final count = e.value.alertsCount.toDouble();
@@ -591,20 +681,125 @@ class _BarChart extends StatelessWidget {
   }
 }
 
-// ─── Summary Table ─────────────────────────────────────────────────────────
-class _SummaryTable extends StatelessWidget {
+// ─── Alert Stats Card ──────────────────────────────────────────────────────
+class _AlertStatsCard extends StatelessWidget {
   final List<DailyReport> reports;
   final bool isDark;
 
-  const _SummaryTable({required this.reports, required this.isDark});
+  const _AlertStatsCard(
+      {required this.reports, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
-    final last7 = reports.length > 7
-        ? reports.sublist(reports.length - 7)
-        : reports;
+
+    if (reports.isEmpty) return const SizedBox.shrink();
+
+    final total =
+        reports.fold<int>(0, (sum, r) => sum + r.alertsCount);
+    final avg = total / reports.length;
+    final maxAlerts =
+        reports.map((r) => r.alertsCount).reduce((a, b) => a > b ? a : b);
+    final quietDays =
+        reports.where((r) => r.alertsCount == 0).length;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Alert Summary',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: textColor)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                  child: _StatChip(
+                      label: 'Total',
+                      value: '$total',
+                      color: AppColors.statusWarning)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _StatChip(
+                      label: 'Avg/day',
+                      value: avg.toStringAsFixed(1),
+                      color: AppColors.severityInfo)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _StatChip(
+                      label: 'Max/day',
+                      value: '$maxAlerts',
+                      color: AppColors.statusCritical)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: _StatChip(
+                      label: 'Clear days',
+                      value: '$quietDays',
+                      color: AppColors.statusGood)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _StatChip(
+      {required this.label,
+      required this.value,
+      required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Text(value,
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: color)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Summary Table ─────────────────────────────────────────────────────────
+class _SummaryTable extends StatelessWidget {
+  final List<DailyReport> reports;
+  final bool isDark;
+
+  const _SummaryTable(
+      {required this.reports, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final last7 =
+        reports.length > 7 ? reports.sublist(reports.length - 7) : reports;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -621,9 +816,8 @@ class _SummaryTable extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: textColor)),
           const SizedBox(height: 12),
-          // Header
-          Row(
-            children: const [
+          const Row(
+            children: [
               Expanded(flex: 3, child: _TableHeader('Date')),
               Expanded(flex: 2, child: _TableHeader('Eggs')),
               Expanded(flex: 2, child: _TableHeader('Rate %')),
@@ -659,9 +853,10 @@ class _SummaryTable extends StatelessWidget {
                     Expanded(
                         flex: 2,
                         child: Text(
-                            '${r.feedConsumedKg.toStringAsFixed(1)}',
+                            r.feedConsumedKg.toStringAsFixed(1),
                             style: TextStyle(
-                                fontSize: 12, color: textColor))),
+                                fontSize: 12,
+                                color: textColor))),
                   ],
                 ),
               )),
