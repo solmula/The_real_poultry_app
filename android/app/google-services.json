@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1089601888148",
+    "firebase_url": "https://poultry-automation-93ae1-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "poultry-automation-93ae1",
+    "storage_bucket": "poultry-automation-93ae1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1089601888148:android:e1f1fbd55dc09f712df981",
+        "android_client_info": {
+          "package_name": "com.example.poultry_automation"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgIEQ8ln76HFnEVy8hdViQXHRRJnu0lQI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
