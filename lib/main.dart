@@ -12,13 +12,17 @@ import 'data/services/notification_service.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main_shell.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Wire up push notifications
+  // Give the navigator key to NotificationService before initialize()
+  NotificationService.navigatorKey = navigatorKey;
+
   await NotificationService.instance.initialize();
 
   runApp(const PoultryApp());
@@ -42,9 +46,17 @@ class PoultryApp extends StatelessWidget {
           return MaterialApp(
             title: 'Poultry Automation',
             debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeMode.system,
+            routes: {
+              '/shell': (context) {
+                final idx = ModalRoute.of(context)?.settings.arguments as int?;
+                return MainShell(initialIndex: idx ?? 0);
+              },
+              '/login': (context) => const LoginScreen(),
+            },
             home: _resolveHome(auth),
           );
         },
