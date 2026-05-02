@@ -5,6 +5,7 @@ import '../../../core/utils/app_utils.dart';
 import '../../../data/providers/live_data_provider.dart';
 import '../../../data/providers/alert_provider.dart';
 import '../../../data/models/sensor_data.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -22,6 +23,7 @@ class DashboardScreen extends StatelessWidget {
         child: Consumer2<LiveDataProvider, AlertProvider>(
           builder: (context, live, alerts, _) {
             final isFirstLoad = live.isLoading && live.data == null;
+            final l10n = AppLocalizations.of(context);
 
             return RefreshIndicator(
               color: AppColors.primary,
@@ -30,20 +32,17 @@ class DashboardScreen extends StatelessWidget {
               },
               child: CustomScrollView(
                 slivers: [
-                  _buildAppBar(context, live),
+                  _buildAppBar(context, live, l10n),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         if (live.error != null) _buildErrorBanner(live.error!),
                         if (live.isStale && !live.isLoading)
-                          _buildStaleBanner(live.lastUpdateText),
+                          _buildStaleBanner(live.lastUpdateText, l10n),
                         const SizedBox(height: 16),
-
-                        // ── First load → shimmer, else real data ──────────
                         if (isFirstLoad) ...[
-                          _ShimmerBox(
-                              height: 48, borderRadius: 14),
+                          _ShimmerBox(height: 48, borderRadius: 14),
                           const SizedBox(height: 24),
                           _shimmerSectionLabel(),
                           const SizedBox(height: 12),
@@ -57,22 +56,22 @@ class DashboardScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           _ShimmerBox(height: 90, borderRadius: 16),
                         ] else ...[
-                          _buildSystemStatus(context, live.data),
+                          _buildSystemStatus(context, live.data, l10n),
                           const SizedBox(height: 24),
-                          _sectionLabel(context, 'Climate'),
+                          _sectionLabel(context, l10n.climate),
                           const SizedBox(height: 12),
-                          _buildClimateGrid(context, live.data),
+                          _buildClimateGrid(context, live.data, l10n),
                           const SizedBox(height: 24),
-                          _sectionLabel(context, 'Feed & Water'),
+                          _sectionLabel(context, l10n.feedAndWater),
                           const SizedBox(height: 12),
-                          _buildFeedWaterGrid(context, live.data),
+                          _buildFeedWaterGrid(context, live.data, l10n),
                           const SizedBox(height: 24),
-                          _sectionLabel(context, 'Egg Production'),
+                          _sectionLabel(context, l10n.eggProduction),
                           const SizedBox(height: 12),
-                          _buildEggCard(context, live.data),
+                          _buildEggCard(context, live.data, l10n),
                           const SizedBox(height: 24),
                           if (alerts.activeCount > 0) ...[
-                            _sectionLabel(context, 'Active Alerts'),
+                            _sectionLabel(context, l10n.activeAlerts),
                             const SizedBox(height: 12),
                             _buildAlertSummary(context, alerts),
                             const SizedBox(height: 12),
@@ -90,11 +89,11 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _shimmerSectionLabel() {
-    return const _ShimmerBox(height: 18, width: 100, borderRadius: 6);
-  }
+  Widget _shimmerSectionLabel() =>
+      const _ShimmerBox(height: 18, width: 100, borderRadius: 6);
 
-  Widget _buildAppBar(BuildContext context, LiveDataProvider live) {
+  Widget _buildAppBar(BuildContext context, LiveDataProvider live,
+      AppLocalizations l10n) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return SliverAppBar(
       floating: true,
@@ -106,7 +105,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Poultry House',
+            l10n.poultryHouse,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -116,10 +115,10 @@ class DashboardScreen extends StatelessWidget {
           ),
           Text(
             live.isLoading && live.data == null
-                ? 'Connecting...'
+                ? l10n.connecting
                 : live.isLoading
-                    ? 'Refreshing...'
-                    : 'Updated ${live.lastUpdateText}',
+                    ? l10n.refreshing
+                    : '${l10n.updated} ${live.lastUpdateText}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -136,16 +135,12 @@ class DashboardScreen extends StatelessWidget {
               width: 18,
               height: 18,
               child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.primary,
-              ),
+                  strokeWidth: 2, color: AppColors.primary),
             ),
           ),
         IconButton(
-          icon: Icon(
-            Icons.notifications_outlined,
-            color: isDark ? AppColors.textLight : AppColors.textPrimary,
-          ),
+          icon: Icon(Icons.notifications_outlined,
+              color: isDark ? AppColors.textLight : AppColors.textPrimary),
           onPressed: () {},
         ),
         const SizedBox(width: 4),
@@ -177,20 +172,18 @@ class DashboardScreen extends StatelessWidget {
               color: AppColors.statusCritical, size: 16),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              error,
-              style: const TextStyle(
-                  color: AppColors.statusCritical,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500),
-            ),
+            child: Text(error,
+                style: const TextStyle(
+                    color: AppColors.statusCritical,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStaleBanner(String lastUpdate) {
+  Widget _buildStaleBanner(String lastUpdate, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -206,7 +199,7 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Data may be outdated — last update: $lastUpdate',
+              l10n.dataMayBeOutdated(lastUpdate),
               style: const TextStyle(
                   color: AppColors.statusWarning,
                   fontSize: 13,
@@ -218,7 +211,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSystemStatus(BuildContext context, SensorData? data) {
+  Widget _buildSystemStatus(BuildContext context, SensorData? data,
+      AppLocalizations l10n) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final nodeA = data?.nodeAOnline ?? false;
     final nodeB = data?.nodeBOnline ?? false;
@@ -259,10 +253,10 @@ class DashboardScreen extends StatelessWidget {
           Expanded(
             child: Text(
               isOnline
-                  ? 'All systems online'
+                  ? l10n.allSystemsOnline
                   : !nodeA
-                      ? 'Node A offline — no sensor data'
-                      : 'Node B offline — limited data',
+                      ? l10n.nodeAOffline
+                      : l10n.nodeBOffline,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -272,20 +266,16 @@ class DashboardScreen extends StatelessWidget {
           ),
           if (data?.firmwareVer != null)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                'v${data!.firmwareVer}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: Text('v${data!.firmwareVer}',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600)),
             ),
         ],
       ),
@@ -294,18 +284,17 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _sectionLabel(BuildContext context, String label) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Text(
-      label,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
-        color: isDark ? AppColors.textLight : AppColors.textPrimary,
-      ),
-    );
+    return Text(label,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+          color: isDark ? AppColors.textLight : AppColors.textPrimary,
+        ));
   }
 
-  Widget _buildClimateGrid(BuildContext context, SensorData? d) {
+  Widget _buildClimateGrid(BuildContext context, SensorData? d,
+      AppLocalizations l10n) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -316,7 +305,7 @@ class DashboardScreen extends StatelessWidget {
       children: [
         _SensorCard(
           icon: Icons.thermostat_rounded,
-          label: 'Temperature',
+          label: l10n.temperature,
           value: AppUtils.formatValue(d?.tempAvg, '°C'),
           subtitle: d?.tempAvg == null
               ? null
@@ -325,19 +314,19 @@ class DashboardScreen extends StatelessWidget {
         ),
         _SensorCard(
           icon: Icons.water_drop_rounded,
-          label: 'Humidity',
+          label: l10n.humidity,
           value: AppUtils.formatValue(d?.rhAvg, '%', decimals: 0),
           valueColor: AppUtils.humidityColor(d?.rhAvg),
         ),
         _SensorCard(
           icon: Icons.air_rounded,
-          label: 'Ammonia (NH₃)',
+          label: l10n.ammonia,
           value: AppUtils.formatValue(d?.nh3Max, ' ppm'),
           valueColor: AppUtils.nh3Color(d?.nh3Max),
         ),
         _SensorCard(
           icon: Icons.cloud_outlined,
-          label: 'CO₂',
+          label: l10n.co2,
           value: AppUtils.formatValue(d?.co2Avg, ' ppm', decimals: 0),
           valueColor: (d?.co2Avg ?? 0) >= 3000
               ? AppColors.statusWarning
@@ -345,29 +334,30 @@ class DashboardScreen extends StatelessWidget {
         ),
         _SensorCard(
           icon: Icons.wb_sunny_rounded,
-          label: 'Light',
+          label: l10n.light,
           value: AppUtils.formatValue(d?.lightAvg, ' lux', decimals: 0),
           subtitle: d?.lights,
         ),
         _SensorCard(
           icon: Icons.wind_power_rounded,
-          label: 'Fan Speed',
+          label: l10n.fanSpeed,
           value: d?.fanSpeed ?? '--',
-          subtitle: d?.heater == true ? '🔥 Heater ON' : null,
+          subtitle: d?.heater == true ? '🔥 ${l10n.heaterOn}' : null,
           subtitleColor: AppColors.statusWarning,
         ),
       ],
     );
   }
 
-  Widget _buildFeedWaterGrid(BuildContext context, SensorData? d) {
+  Widget _buildFeedWaterGrid(BuildContext context, SensorData? d,
+      AppLocalizations l10n) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _LevelCard(
-                label: 'H1 Water',
+                label: l10n.h1Water,
                 percent: d?.h1WaterPct,
                 subtitle: d?.h1PumpState,
                 icon: Icons.water_rounded,
@@ -376,7 +366,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _LevelCard(
-                label: 'H2 Water',
+                label: l10n.h2Water,
                 percent: d?.h2WaterPct,
                 subtitle: d?.h2PumpState,
                 icon: Icons.water_rounded,
@@ -389,7 +379,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _LevelCard(
-                label: 'H1 Feed',
+                label: l10n.h1Feed,
                 percent: d?.h1FeedPct,
                 subtitle: d?.h1FeedKg != null
                     ? '${d!.h1FeedKg!.toStringAsFixed(1)} kg'
@@ -400,7 +390,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _LevelCard(
-                label: 'H2 Feed',
+                label: l10n.h2Feed,
                 percent: d?.h2FeedPct,
                 subtitle: d?.h2FeedKg != null
                     ? '${d!.h2FeedKg!.toStringAsFixed(1)} kg'
@@ -414,7 +404,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEggCard(BuildContext context, SensorData? d) {
+  Widget _buildEggCard(BuildContext context, SensorData? d,
+      AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -438,19 +429,16 @@ class DashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Today's Eggs",
-                  style: TextStyle(
-                      fontSize: 13, color: AppColors.textSecondary),
-                ),
+                Text(l10n.todaysEggs,
+                    style: const TextStyle(
+                        fontSize: 13, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text(
                   AppUtils.formatInt(d?.totalToday),
                   style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.accent,
-                  ),
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.accent),
                 ),
               ],
             ),
@@ -458,11 +446,9 @@ class DashboardScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text(
-                'Laying Rate',
-                style: TextStyle(
-                    fontSize: 11, color: AppColors.textSecondary),
-              ),
+              Text(l10n.layingRate,
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               Text(
                 d?.layingRate != null
@@ -499,30 +485,24 @@ class DashboardScreen extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 8,
-                height: 8,
-                decoration:
-                    BoxDecoration(shape: BoxShape.circle, color: color),
-              ),
+                  width: 8,
+                  height: 8,
+                  decoration:
+                      BoxDecoration(shape: BoxShape.circle, color: color)),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      alert.parameterLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
+                    Text(alert.parameterLabel,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: color)),
                     const SizedBox(height: 2),
-                    Text(
-                      alert.displayText,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                    ),
+                    Text(alert.displayText,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -534,17 +514,13 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// ── Shimmer base widget ───────────────────────────────────────────────────────
+// ── Shimmer ───────────────────────────────────────────────────────────────────
 class _ShimmerBox extends StatefulWidget {
   final double height;
   final double? width;
   final double borderRadius;
-
-  const _ShimmerBox({
-    required this.height,
-    this.width,
-    required this.borderRadius,
-  });
+  const _ShimmerBox(
+      {required this.height, this.width, required this.borderRadius});
 
   @override
   State<_ShimmerBox> createState() => _ShimmerBoxState();
@@ -559,12 +535,10 @@ class _ShimmerBoxState extends State<_ShimmerBox>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
     _animation = Tween<double>(begin: -1.5, end: 1.5).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -576,31 +550,27 @@ class _ShimmerBoxState extends State<_ShimmerBox>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark
+    final base = isDark
         ? Colors.white.withOpacity(0.06)
         : Colors.black.withOpacity(0.06);
-    final highlightColor = isDark
+    final highlight = isDark
         ? Colors.white.withOpacity(0.12)
         : Colors.black.withOpacity(0.10);
 
     return AnimatedBuilder(
       animation: _animation,
-      builder: (context, _) {
-        return Container(
-          height: widget.height,
-          width: widget.width,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              stops: const [0.0, 0.5, 1.0],
-              colors: [baseColor, highlightColor, baseColor],
-              transform: _SlidingGradientTransform(_animation.value),
-            ),
+      builder: (_, __) => Container(
+        height: widget.height,
+        width: widget.width,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          gradient: LinearGradient(
+            stops: const [0.0, 0.5, 1.0],
+            colors: [base, highlight, base],
+            transform: _SlidingGradientTransform(_animation.value),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -610,16 +580,16 @@ class _SlidingGradientTransform extends GradientTransform {
   const _SlidingGradientTransform(this.slidePercent);
 
   @override
-  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    return Matrix4.translationValues(
-        bounds.width * slidePercent, 0.0, 0.0);
-  }
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
 }
 
-// ── Shimmer climate grid (matches real 2x3 grid) ─────────────────────────────
 class _ShimmerClimateGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.cardDark
+        : AppColors.cardLight;
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -632,12 +602,8 @@ class _ShimmerClimateGrid extends StatelessWidget {
         (_) => Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.cardDark
-                : AppColors.cardLight,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
+              color: cardColor, borderRadius: BorderRadius.circular(16)),
+          child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -652,55 +618,43 @@ class _ShimmerClimateGrid extends StatelessWidget {
   }
 }
 
-// ── Shimmer feed/water grid (matches real 2x2 grid) ──────────────────────────
 class _ShimmerFeedWaterGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardColor = Theme.of(context).brightness == Brightness.dark
         ? AppColors.cardDark
         : AppColors.cardLight;
-
-    Widget shimmerCard() => Container(
+    Widget card() => Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
+              color: cardColor, borderRadius: BorderRadius.circular(16)),
+          child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _ShimmerBox(height: 10, width: 60, borderRadius: 4),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               _ShimmerBox(height: 24, width: 50, borderRadius: 6),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _ShimmerBox(height: 6, borderRadius: 4),
             ],
           ),
         );
-
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: shimmerCard()),
-            const SizedBox(width: 12),
-            Expanded(child: shimmerCard()),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: shimmerCard()),
-            const SizedBox(width: 12),
-            Expanded(child: shimmerCard()),
-          ],
-        ),
-      ],
-    );
+    return Column(children: [
+      Row(children: [
+        Expanded(child: card()),
+        const SizedBox(width: 12),
+        Expanded(child: card())
+      ]),
+      const SizedBox(height: 12),
+      Row(children: [
+        Expanded(child: card()),
+        const SizedBox(width: 12),
+        Expanded(child: card())
+      ]),
+    ]);
   }
 }
 
-// ─── Sensor Card ──────────────────────────────────────────────────────────────
 class _SensorCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -723,53 +677,39 @@ class _SensorCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
+          color: cardColor, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 15, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
+          Row(children: [
+            Icon(icon, size: 15, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(label,
                   style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? textColor,
+                  overflow: TextOverflow.ellipsis),
             ),
-          ),
-          if (subtitle != null)
-            Text(
-              subtitle!,
+          ]),
+          Text(value,
               style: TextStyle(
-                fontSize: 11,
-                color: subtitleColor ?? AppColors.textSecondary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: valueColor ?? textColor)),
+          if (subtitle != null)
+            Text(subtitle!,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: subtitleColor ?? AppColors.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis)
           else
             const SizedBox.shrink(),
         ],
@@ -778,19 +718,17 @@ class _SensorCard extends StatelessWidget {
   }
 }
 
-// ─── Level Card ───────────────────────────────────────────────────────────────
 class _LevelCard extends StatelessWidget {
   final String label;
   final double? percent;
   final String? subtitle;
   final IconData icon;
 
-  const _LevelCard({
-    required this.label,
-    required this.percent,
-    required this.icon,
-    this.subtitle,
-  });
+  const _LevelCard(
+      {required this.label,
+      required this.percent,
+      required this.icon,
+      this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -798,38 +736,27 @@ class _LevelCard extends StatelessWidget {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final color = AppUtils.levelColor(percent);
     final pct = percent ?? 0.0;
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
+          color: cardColor, borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Text(
-                label,
+          Row(children: [
+            Icon(icon, size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(label,
                 style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500)),
+          ]),
           const SizedBox(height: 10),
           Text(
             percent == null ? '--' : '${pct.toStringAsFixed(0)}%',
             style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+                fontSize: 22, fontWeight: FontWeight.w700, color: color),
           ),
           const SizedBox(height: 8),
           ClipRRect(
@@ -843,11 +770,9 @@ class _LevelCard extends StatelessWidget {
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 6),
-            Text(
-              subtitle!,
-              style: const TextStyle(
-                  fontSize: 10, color: AppColors.textSecondary),
-            ),
+            Text(subtitle!,
+                style: const TextStyle(
+                    fontSize: 10, color: AppColors.textSecondary)),
           ],
         ],
       ),

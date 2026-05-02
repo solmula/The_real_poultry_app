@@ -81,7 +81,7 @@ class PoultryApp extends StatelessWidget {
       case AuthStatus.unknown:
         return const SplashScreen();
       case AuthStatus.authenticated:
-        return const MainShell();
+        return MainShell();
       case AuthStatus.unauthenticated:
         return const LoginScreen();
     }

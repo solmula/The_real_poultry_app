@@ -80,7 +80,7 @@ class _MainShellState extends State<MainShell> {
             index: _currentIndex,
             children: _screens,
           ),
-          // ── In-app notification banner ──────────────────────────────────
+          // In-app notification banner
           if (_bannerVisible)
             Positioned(
               top: 0,
@@ -92,7 +92,7 @@ class _MainShellState extends State<MainShell> {
                 severity: _bannerSeverity ?? 'INFO',
                 onTap: () {
                   setState(() => _bannerVisible = false);
-                  setState(() => _currentIndex = 3); // go to Alerts tab
+                  setState(() => _currentIndex = 3);
                 },
                 onDismiss: () {
                   setState(() => _bannerVisible = false);
@@ -179,7 +179,7 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-// ── In-app alert banner ───────────────────────────────────────────────────────
+// In-app alert banner
 class _AlertBanner extends StatefulWidget {
   final String title;
   final String body;
@@ -254,8 +254,10 @@ class _AlertBannerState extends State<_AlertBanner>
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          margin: EdgeInsets.only(top: topPadding + 8, left: 12, right: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          margin: EdgeInsets.only(
+              top: topPadding + 8, left: 12, right: 12),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: _bannerColor,
             borderRadius: BorderRadius.circular(14),
@@ -300,7 +302,6 @@ class _AlertBannerState extends State<_AlertBanner>
                 ),
               ),
               const SizedBox(width: 8),
-              // Tap to go to alerts hint
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 8, vertical: 4),
