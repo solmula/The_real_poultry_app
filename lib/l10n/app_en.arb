@@ -1,0 +1,159 @@
+{
+  "@@locale": "en",
+
+  "appName": "Poultry Automation",
+  "smartFarmManagement": "Smart Farm Management",
+
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
+  "forgotPassword": "Forgot Password?",
+  "invalidEmailOrPassword": "Invalid email or password",
+  "noInternetConnection": "No internet connection. Please try again.",
+  "tooManyAttempts": "Too many attempts. Please wait and try again.",
+  "emailRequired": "Email is required",
+  "passwordRequired": "Password is required",
+
+  "dashboard": "Dashboard",
+  "production": "Production",
+  "history": "History",
+  "alerts": "Alerts",
+  "more": "More",
+
+  "poultryHouse": "Poultry House",
+  "loading": "Loading...",
+  "connecting": "Connecting...",
+  "refreshing": "Refreshing...",
+  "updated": "Updated",
+  "allSystemsOnline": "All systems online",
+  "nodeAOffline": "Node A offline — no sensor data",
+  "nodeBOffline": "Node B offline — limited data",
+  "dataMayBeOutdated": "Data may be outdated — last update: {time}",
+  "@dataMayBeOutdated": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "noInternetShowingLastData": "No internet connection — showing last known data",
+
+  "climate": "Climate",
+  "temperature": "Temperature",
+  "humidity": "Humidity",
+  "ammonia": "Ammonia (NH₃)",
+  "co2": "CO₂",
+  "light": "Light",
+  "fanSpeed": "Fan Speed",
+  "heaterOn": "Heater ON",
+
+  "feedAndWater": "Feed & Water",
+  "h1Water": "H1 Water",
+  "h2Water": "H2 Water",
+  "h1Feed": "H1 Feed",
+  "h2Feed": "H2 Feed",
+
+  "eggProduction": "Egg Production",
+  "todaysEggs": "Today's Eggs",
+  "layingRate": "Laying Rate",
+  "good": "Good",
+  "low": "Low",
+  "tierBreakdown": "Tier Breakdown",
+  "leftBelt": "Left Belt",
+  "rightBelt": "Right Belt",
+  "total": "Total",
+
+  "activeAlerts": "Active Alerts",
+  "noActiveAlerts": "No active alerts",
+  "active": "active",
+  "allClear": "All Clear",
+  "allSystemsOperatingNormally": "No active alerts at this time.\nAll systems are operating normally.",
+  "viewAlertHistory": "View Alert History",
+  "acknowledge": "Acknowledge",
+  "alertHistory": "Alert History",
+  "noAlertHistoryYet": "No alert history yet",
+  "acknowledgedAlertsWillAppearHere": "Acknowledged alerts will appear here.",
+
+  "feedWater": "Feed & Water",
+  "manualOverride": "Manual Override",
+  "systemStatus": "System Status",
+  "settings": "Settings",
+
+  "operations": "Operations",
+  "system": "System",
+  "viewOnly": "View only",
+
+  "nodeAHealth": "Node A",
+  "nodeBHealth": "Node B",
+  "online": "Online",
+  "offline": "Offline",
+  "firmware": "Firmware",
+  "uptime": "Uptime",
+  "freeHeap": "Free Heap",
+  "lastHeartbeat": "Last Heartbeat",
+  "manureBelts": "Manure Belts",
+  "ok": "OK",
+  "full": "FULL",
+
+  "thresholds": "Thresholds",
+  "lightSchedule": "Light Schedule",
+  "notificationPreferences": "Notification Preferences",
+  "profile": "Profile",
+  "logout": "Logout",
+  "logoutConfirm": "Are you sure you want to logout?",
+  "cancel": "Cancel",
+  "save": "Save",
+  "saved": "Saved",
+  "adminOnly": "Admin only",
+
+  "language": "Language",
+  "english": "English",
+  "amharic": "አማርኛ",
+
+  "exportPdf": "Export PDF Report",
+  "exportFailed": "Export failed",
+
+  "retry": "Retry",
+  "refresh": "Refresh",
+  "noDataForThisPeriod": "No data for this period",
+  "failedToLoad": "Failed to load",
+  "noHistoryYet": "No history yet",
+
+  "last24h": "24h",
+  "last7d": "7d",
+  "last30d": "30d",
+
+  "temperatureChart": "Temperature",
+  "humidityChart": "Humidity",
+  "nh3Co2Chart": "NH₃ / CO₂",
+  "eggsChart": "Eggs",
+  "feedChart": "Feed",
+
+  "commandSent": "Command sent",
+  "commandExecuted": "Command executed",
+  "commandExpired": "Command expired — ESP32 may be offline",
+  "cannotSendOffline": "Cannot send command — no internet connection",
+  "clearAllOverrides": "Clear All Overrides",
+  "confirmCommand": "Confirm Command",
+  "confirm": "Confirm",
+  "sendCommand": "Send",
+
+  "hoursAgo": "{hours}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "minutesAgo": "{minutes}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "daysAgo": "{days}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "justNow": "just now",
+  "never": "Never"
+}

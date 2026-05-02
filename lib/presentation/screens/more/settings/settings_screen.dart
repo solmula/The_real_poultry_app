@@ -4,7 +4,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/providers/auth_provider.dart';
 import '../../../../data/providers/threshold_provider.dart';
 import '../../../../data/providers/live_data_provider.dart';
+import '../../../../data/providers/language_provider.dart';
 import '../../../../data/models/threshold_model.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -70,13 +72,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final bgColor   = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: cardColor,
         surfaceTintColor: Colors.transparent,
-        title: Text('Settings', style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
+        title: Text(l10n.settings,
+            style: TextStyle(
+                color: textColor, fontWeight: FontWeight.w700)),
         iconTheme: IconThemeData(color: textColor),
       ),
       body: Consumer3<AuthProvider, ThresholdProvider, LiveDataProvider>(
@@ -88,11 +93,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
               children: [
 
+                // ── Profile ───────────────────────────────────────────
                 _ProfileCard(auth: auth, isDark: isDark),
                 const SizedBox(height: 24),
 
+                // ── Language ──────────────────────────────────────────
+                _SectionLabel(text: l10n.language, isDark: isDark),
+                const SizedBox(height: 10),
+                _LanguageCard(isDark: isDark),
+                const SizedBox(height: 24),
+
+                // ── Admin: Thresholds ─────────────────────────────────
                 if (auth.isAdmin) ...[
-                  _SectionLabel(text: 'Alert Thresholds', isDark: isDark),
+                  _SectionLabel(text: l10n.thresholds, isDark: isDark),
                   const SizedBox(height: 10),
 
                   _ThresholdCard(
@@ -150,31 +163,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _saving ? null : () => _saveThresholds(thresh),
+                      onPressed: _saving
+                          ? null
+                          : () => _saveThresholds(thresh),
                       icon: _saving
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.save_rounded),
-                      label: Text(_saving ? 'Saving...' : 'Save Thresholds'),
+                      label: Text(_saving
+                          ? 'Saving...'
+                          : l10n.save),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  _SectionLabel(text: 'Light Schedule', isDark: isDark),
+                  _SectionLabel(text: l10n.lightSchedule, isDark: isDark),
                   const SizedBox(height: 10),
                   _LightScheduleCard(
                     lightOn: _lightOn,
                     lightOff: _lightOff,
                     isDark: isDark,
-                    onChangedOn:  (t) => setState(() => _lightOn  = t),
+                    onChangedOn: (t) => setState(() => _lightOn = t),
                     onChangedOff: (t) => setState(() => _lightOff = t),
                     onSave: () => _saveLightSchedule(thresh),
                   ),
                   const SizedBox(height: 24),
                 ],
 
-                _SectionLabel(text: 'Account', isDark: isDark),
+                // ── Account ───────────────────────────────────────────
+                _SectionLabel(text: l10n.profile, isDark: isDark),
                 const SizedBox(height: 10),
-                _LogoutButton(auth: auth),
+                _LogoutButton(auth: auth, l10n: l10n),
               ],
             ),
           );
@@ -188,18 +210,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _saving = true);
     try {
       final updated = ThresholdModel(
-        tempFanLow:   double.parse(_tempFanLow.text),
-        tempFanHigh:  double.parse(_tempFanHigh.text),
-        tempFanOff:   double.parse(_tempFanOff.text),
-        tempHeatOn:   double.parse(_tempHeatOn.text),
-        tempHeatOff:  double.parse(_tempHeatOff.text),
-        nh3Warn:      double.parse(_nh3Warn.text),
-        nh3High:      double.parse(_nh3High.text),
-        nh3Critical:  double.parse(_nh3Critical.text),
-        co2High:      double.parse(_co2High.text),
-        rhHigh:       double.parse(_rhHigh.text),
-        waterPumpOn:  double.parse(_waterPumpOn.text),
-        waterPumpOff: double.parse(_waterPumpOff.text),
+        tempFanLow:    double.parse(_tempFanLow.text),
+        tempFanHigh:   double.parse(_tempFanHigh.text),
+        tempFanOff:    double.parse(_tempFanOff.text),
+        tempHeatOn:    double.parse(_tempHeatOn.text),
+        tempHeatOff:   double.parse(_tempHeatOff.text),
+        nh3Warn:       double.parse(_nh3Warn.text),
+        nh3High:       double.parse(_nh3High.text),
+        nh3Critical:   double.parse(_nh3Critical.text),
+        co2High:       double.parse(_co2High.text),
+        rhHigh:        double.parse(_rhHigh.text),
+        waterPumpOn:   double.parse(_waterPumpOn.text),
+        waterPumpOff:  double.parse(_waterPumpOff.text),
         lightOnHour:   thresh.thresholds.lightOnHour,
         lightOnMinute: thresh.thresholds.lightOnMinute,
         lightOffHour:  thresh.thresholds.lightOffHour,
@@ -208,13 +230,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await thresh.saveThresholds(updated);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thresholds saved'), backgroundColor: AppColors.statusGood),
+          SnackBar(
+              content: Text(AppLocalizations.of(context).saved),
+              backgroundColor: AppColors.statusGood),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save thresholds'), backgroundColor: AppColors.statusCritical),
+          const SnackBar(
+              content: Text('Failed to save thresholds'),
+              backgroundColor: AppColors.statusCritical),
         );
       }
     } finally {
@@ -245,19 +271,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await thresh.saveThresholds(updated);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Light schedule saved'), backgroundColor: AppColors.statusGood),
+          SnackBar(
+              content: Text(AppLocalizations.of(context).saved),
+              backgroundColor: AppColors.statusGood),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save light schedule'), backgroundColor: AppColors.statusCritical),
+          const SnackBar(
+              content: Text('Failed to save light schedule'),
+              backgroundColor: AppColors.statusCritical),
         );
       }
     }
   }
 }
 
+// ── Language Card ─────────────────────────────────────────────────────────────
+class _LanguageCard extends StatelessWidget {
+  final bool isDark;
+  const _LanguageCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final lang = context.watch<LanguageProvider>();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: cardColor, borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Text('🌐', style: TextStyle(fontSize: 22)),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppLocalizations.of(context).language,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: textColor)),
+                const SizedBox(height: 2),
+                Text(
+                  lang.isAmharic ? 'አማርኛ' : 'English',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          // Toggle buttons
+          Row(
+            children: [
+              _LangChip(
+                label: 'EN',
+                selected: !lang.isAmharic,
+                onTap: () => lang.setLocale(const Locale('en')),
+              ),
+              const SizedBox(width: 8),
+              _LangChip(
+                label: 'አማ',
+                selected: lang.isAmharic,
+                onTap: () => lang.setLocale(const Locale('am')),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LangChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _LangChip(
+      {required this.label,
+      required this.selected,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary
+              : AppColors.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : AppColors.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Profile Card ──────────────────────────────────────────────────────────────
 class _ProfileCard extends StatelessWidget {
   final AuthProvider auth;
   final bool isDark;
@@ -267,18 +402,28 @@ class _ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
-    final roleColor = auth.isAdmin ? AppColors.primary : auth.isViewer ? AppColors.statusOffline : AppColors.severityInfo;
-    final roleLabel = auth.isAdmin ? 'Admin' : auth.isViewer ? 'Viewer' : 'Operator';
+    final roleColor = auth.isAdmin
+        ? AppColors.primary
+        : auth.isViewer
+            ? AppColors.statusOffline
+            : AppColors.severityInfo;
+    final roleLabel =
+        auth.isAdmin ? 'Admin' : auth.isViewer ? 'Viewer' : 'Operator';
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+          color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Row(
         children: [
           Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(color: roleColor.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
-            child: Icon(Icons.person_rounded, color: roleColor, size: 28),
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+                color: roleColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14)),
+            child:
+                Icon(Icons.person_rounded, color: roleColor, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -287,14 +432,24 @@ class _ProfileCard extends StatelessWidget {
               children: [
                 Text(
                   auth.user?.email ?? '--',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: textColor),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: roleColor.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-                  child: Text(roleLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: roleColor)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: roleColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6)),
+                  child: Text(roleLabel,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: roleColor)),
                 ),
               ],
             ),
@@ -305,6 +460,7 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
+// ── Section Label ─────────────────────────────────────────────────────────────
 class _SectionLabel extends StatelessWidget {
   final String text;
   final bool isDark;
@@ -314,7 +470,11 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 1.2),
+      style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textSecondary,
+          letterSpacing: 1.2),
     );
   }
 }
@@ -326,13 +486,19 @@ class _FieldDef {
   const _FieldDef(this.label, this.controller, this.unit);
 }
 
+// ── Threshold Card ────────────────────────────────────────────────────────────
 class _ThresholdCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color iconColor;
   final bool isDark;
   final List<_FieldDef> fields;
-  const _ThresholdCard({required this.title, required this.icon, required this.iconColor, required this.isDark, required this.fields});
+  const _ThresholdCard(
+      {required this.title,
+      required this.icon,
+      required this.iconColor,
+      required this.isDark,
+      required this.fields});
 
   @override
   Widget build(BuildContext context) {
@@ -341,49 +507,68 @@ class _ThresholdCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+          color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
             Icon(icon, color: iconColor, size: 18),
             const SizedBox(width: 8),
-            Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor)),
           ]),
           const SizedBox(height: 14),
           ...fields.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Text(f.label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    controller: f.controller,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
-                    decoration: InputDecoration(
-                      suffixText: f.unit,
-                      suffixStyle: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      isDense: true,
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(f.label,
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary)),
                     ),
-                    validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null,
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: f.controller,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textColor),
+                        decoration: InputDecoration(
+                          suffixText: f.unit,
+                          suffixStyle: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 10),
+                          isDense: true,
+                        ),
+                        validator: (v) =>
+                            double.tryParse(v ?? '') == null
+                                ? 'Invalid'
+                                : null,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          )),
+              )),
         ],
       ),
     );
   }
 }
 
+// ── Light Schedule Card ───────────────────────────────────────────────────────
 class _LightScheduleCard extends StatelessWidget {
   final TimeOfDay lightOn;
   final TimeOfDay lightOff;
@@ -391,23 +576,36 @@ class _LightScheduleCard extends StatelessWidget {
   final void Function(TimeOfDay) onChangedOn;
   final void Function(TimeOfDay) onChangedOff;
   final VoidCallback onSave;
-  const _LightScheduleCard({required this.lightOn, required this.lightOff, required this.isDark, required this.onChangedOn, required this.onChangedOff, required this.onSave});
+  const _LightScheduleCard(
+      {required this.lightOn,
+      required this.lightOff,
+      required this.isDark,
+      required this.onChangedOn,
+      required this.onChangedOff,
+      required this.onSave});
 
   @override
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+          color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.wb_sunny_rounded, color: AppColors.accent, size: 18),
+            const Icon(Icons.wb_sunny_rounded,
+                color: AppColors.accent, size: 18),
             const SizedBox(width: 8),
-            Text('Daily Light Schedule', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+            Text(l10n.lightSchedule,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor)),
           ]),
           const SizedBox(height: 16),
           Row(children: [
@@ -417,7 +615,8 @@ class _LightScheduleCard extends StatelessWidget {
                 time: lightOn,
                 isDark: isDark,
                 onPick: (_) async {
-                  final picked = await showTimePicker(context: context, initialTime: lightOn);
+                  final picked = await showTimePicker(
+                      context: context, initialTime: lightOn);
                   if (picked != null) onChangedOn(picked);
                 },
               ),
@@ -429,7 +628,8 @@ class _LightScheduleCard extends StatelessWidget {
                 time: lightOff,
                 isDark: isDark,
                 onPick: (_) async {
-                  final picked = await showTimePicker(context: context, initialTime: lightOff);
+                  final picked = await showTimePicker(
+                      context: context, initialTime: lightOff);
                   if (picked != null) onChangedOff(picked);
                 },
               ),
@@ -441,11 +641,13 @@ class _LightScheduleCard extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onSave,
               icon: const Icon(Icons.save_rounded, size: 16),
-              label: const Text('Save Schedule'),
+              label: Text(l10n.save),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                side: BorderSide(color: AppColors.primary.withOpacity(0.4)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                side: BorderSide(
+                    color: AppColors.primary.withOpacity(0.4)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -455,12 +657,17 @@ class _LightScheduleCard extends StatelessWidget {
   }
 }
 
+// ── Time Picker ───────────────────────────────────────────────────────────────
 class _TimePicker extends StatelessWidget {
   final String label;
   final TimeOfDay time;
   final bool isDark;
   final void Function(TimeOfDay) onPick;
-  const _TimePicker({required this.label, required this.time, required this.isDark, required this.onPick});
+  const _TimePicker(
+      {required this.label,
+      required this.time,
+      required this.isDark,
+      required this.onPick});
 
   String _fmt(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -470,17 +677,25 @@ class _TimePicker extends StatelessWidget {
     return GestureDetector(
       onTap: () => onPick(time),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border:
+              Border.all(color: AppColors.primary.withOpacity(0.3)),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.textSecondary)),
             const SizedBox(height: 4),
-            Text(_fmt(time), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.primary)),
+            Text(_fmt(time),
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary)),
           ],
         ),
       ),
@@ -488,9 +703,11 @@ class _TimePicker extends StatelessWidget {
   }
 }
 
+// ── Logout Button ─────────────────────────────────────────────────────────────
 class _LogoutButton extends StatelessWidget {
   final AuthProvider auth;
-  const _LogoutButton({required this.auth});
+  final AppLocalizations l10n;
+  const _LogoutButton({required this.auth, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -501,26 +718,35 @@ class _LogoutButton extends StatelessWidget {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (_) => AlertDialog(
-              title: const Text('Logout'),
-              content: const Text('Are you sure you want to log out?'),
+              title: Text(l10n.logout),
+              content: Text(l10n.logoutConfirm),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l10n.cancel)),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusCritical),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.statusCritical),
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Logout'),
+                  child: Text(l10n.logout),
                 ),
               ],
             ),
           );
           if (confirmed == true) await auth.signOut();
         },
-        icon: const Icon(Icons.logout_rounded, color: AppColors.statusCritical),
-        label: const Text('Logout', style: TextStyle(color: AppColors.statusCritical, fontWeight: FontWeight.w600)),
+        icon: const Icon(Icons.logout_rounded,
+            color: AppColors.statusCritical),
+        label: Text(l10n.logout,
+            style: const TextStyle(
+                color: AppColors.statusCritical,
+                fontWeight: FontWeight.w600)),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: BorderSide(
+              color: AppColors.statusCritical.withOpacity(0.4)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

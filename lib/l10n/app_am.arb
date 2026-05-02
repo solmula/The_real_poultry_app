@@ -1,0 +1,159 @@
+{
+  "@@locale": "am",
+
+  "appName": "የዶሮ አስተዳደር",
+  "smartFarmManagement": "ዘመናዊ የእርሻ አስተዳደር",
+
+  "login": "ግባ",
+  "email": "ኢሜይል",
+  "password": "የሚስጥር ቁጥር",
+  "forgotPassword": "የሚስጥር ቁጥር ረሳህ?",
+  "invalidEmailOrPassword": "ኢሜይል ወይም የሚስጥር ቁጥር ትክክል አይደለም",
+  "noInternetConnection": "የኢንተርኔት ግንኙነት የለም። እንደገና ሞክር።",
+  "tooManyAttempts": "ብዙ ጊዜ ሞክረሃል። ጥቂት ጠብቅና እንደገና ሞክር።",
+  "emailRequired": "ኢሜይል ያስፈልጋል",
+  "passwordRequired": "የሚስጥር ቁጥር ያስፈልጋል",
+
+  "dashboard": "ዳሽቦርድ",
+  "production": "ምርት",
+  "history": "ታሪክ",
+  "alerts": "ማንቂያዎች",
+  "more": "ተጨማሪ",
+
+  "poultryHouse": "የዶሮ ቤት",
+  "loading": "በመጫን ላይ...",
+  "connecting": "በመገናኘት ላይ...",
+  "refreshing": "በማዘምን ላይ...",
+  "updated": "ዘምኗል",
+  "allSystemsOnline": "ሁሉም ስርዓቶች ተያይዘዋል",
+  "nodeAOffline": "Node A ተቋርጧል — የሴንሰር ዳታ የለም",
+  "nodeBOffline": "Node B ተቋርጧል — ውስን ዳታ",
+  "dataMayBeOutdated": "ዳታ ያረጀ ሊሆን ይችላል — የመጨረሻ ዝማኔ: {time}",
+  "@dataMayBeOutdated": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "noInternetShowingLastData": "የኢንተርኔት ግንኙነት የለም — የመጨረሻ ዳታ እየታየ ነው",
+
+  "climate": "የአየር ሁኔታ",
+  "temperature": "የሙቀት መጠን",
+  "humidity": "እርጥበት",
+  "ammonia": "አሞኒያ (NH₃)",
+  "co2": "CO₂",
+  "light": "ብርሃን",
+  "fanSpeed": "የአየር ማናፈሻ ፍጥነት",
+  "heaterOn": "ማሞቂያ አብርቷል",
+
+  "feedAndWater": "መኖ እና ውሃ",
+  "h1Water": "ቤት 1 ውሃ",
+  "h2Water": "ቤት 2 ውሃ",
+  "h1Feed": "ቤት 1 መኖ",
+  "h2Feed": "ቤት 2 መኖ",
+
+  "eggProduction": "የእንቁላል ምርት",
+  "todaysEggs": "የዛሬ እንቁላሎች",
+  "layingRate": "የምርት መጠን",
+  "good": "ጥሩ",
+  "low": "ዝቅተኛ",
+  "tierBreakdown": "የደረጃ ዝርዝር",
+  "leftBelt": "ግራ ቀበቶ",
+  "rightBelt": "ቀኝ ቀበቶ",
+  "total": "ጠቅላላ",
+
+  "activeAlerts": "ንቁ ማንቂያዎች",
+  "noActiveAlerts": "ንቁ ማንቂያ የለም",
+  "active": "ንቁ",
+  "allClear": "ሁሉም ጥሩ ነው",
+  "allSystemsOperatingNormally": "በአሁኑ ጊዜ ንቁ ማንቂያ የለም።\nሁሉም ስርዓቶች በሚገባ እየሰሩ ነው።",
+  "viewAlertHistory": "የማንቂያ ታሪክ ይመልከቱ",
+  "acknowledge": "ተቀብያለሁ",
+  "alertHistory": "የማንቂያ ታሪክ",
+  "noAlertHistoryYet": "እስካሁን የማንቂያ ታሪክ የለም",
+  "acknowledgedAlertsWillAppearHere": "የተቀበሉ ማንቂያዎች እዚህ ይታያሉ።",
+
+  "feedWater": "መኖ እና ውሃ",
+  "manualOverride": "እጅ በእጅ ቁጥጥር",
+  "systemStatus": "የስርዓት ሁኔታ",
+  "settings": "ቅንብሮች",
+
+  "operations": "ስራዎች",
+  "system": "ስርዓት",
+  "viewOnly": "ማየት ብቻ",
+
+  "nodeAHealth": "Node A",
+  "nodeBHealth": "Node B",
+  "online": "ተያይዟል",
+  "offline": "ተቋርጧል",
+  "firmware": "ፈርምዌር",
+  "uptime": "የስራ ሰዓት",
+  "freeHeap": "ነጻ ማህደረ ትውስታ",
+  "lastHeartbeat": "የመጨረሻ ምልክት",
+  "manureBelts": "የፍሳሽ ቀበቶዎች",
+  "ok": "ጥሩ",
+  "full": "ሞልቷል",
+
+  "thresholds": "የገደብ እሴቶች",
+  "lightSchedule": "የብርሃን ጊዜ ሰሌዳ",
+  "notificationPreferences": "የማሳወቂያ ምርጫዎች",
+  "profile": "መገለጫ",
+  "logout": "ውጣ",
+  "logoutConfirm": "መውጣት ይፈልጋሉ?",
+  "cancel": "ሰርዝ",
+  "save": "አስቀምጥ",
+  "saved": "ተቀምጧል",
+  "adminOnly": "አስተዳዳሪ ብቻ",
+
+  "language": "ቋንቋ",
+  "english": "English",
+  "amharic": "አማርኛ",
+
+  "exportPdf": "PDF ሪፖርት ላክ",
+  "exportFailed": "መላክ አልተሳካም",
+
+  "retry": "እንደገና ሞክር",
+  "refresh": "አድስ",
+  "noDataForThisPeriod": "ለዚህ ጊዜ ዳታ የለም",
+  "failedToLoad": "መጫን አልተሳካም",
+  "noHistoryYet": "እስካሁን ታሪክ የለም",
+
+  "last24h": "24ሰ",
+  "last7d": "7ቀ",
+  "last30d": "30ቀ",
+
+  "temperatureChart": "የሙቀት መጠን",
+  "humidityChart": "እርጥበት",
+  "nh3Co2Chart": "NH₃ / CO₂",
+  "eggsChart": "እንቁላሎች",
+  "feedChart": "መኖ",
+
+  "commandSent": "ትዕዛዝ ተልኳል",
+  "commandExecuted": "ትዕዛዝ ተፈጽሟል",
+  "commandExpired": "ትዕዛዝ ጊዜው አልፏል — ESP32 ተቋርጧል",
+  "cannotSendOffline": "ትዕዛዝ መላክ አይቻልም — የኢንተርኔት ግንኙነት የለም",
+  "clearAllOverrides": "ሁሉንም ትዕዛዞች ሰርዝ",
+  "confirmCommand": "ትዕዛዝ አረጋግጥ",
+  "confirm": "አረጋግጥ",
+  "sendCommand": "ላክ",
+
+  "hoursAgo": "ከ{hours} ሰዓት በፊት",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "minutesAgo": "ከ{minutes} ደቂቃ በፊት",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "daysAgo": "ከ{days} ቀን በፊት",
+  "@daysAgo": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "justNow": "አሁን",
+  "never": "ፈጽሞ አይደለም"
+}

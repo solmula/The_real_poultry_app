@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/providers/auth_provider.dart';
+import '../../../data/providers/language_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,11 +30,13 @@ class _LoginScreenState extends State<LoginScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _fadeAnim =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.08),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+    ).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
   }
 
@@ -53,13 +57,16 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _forgotPassword() async {
+    final l10n = AppLocalizations.of(context);
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email first')),
+        SnackBar(content: Text(l10n.emailRequired)),
       );
       return;
     }
-    await context.read<AuthProvider>().sendPasswordReset(_emailController.text);
+    await context
+        .read<AuthProvider>()
+        .sendPasswordReset(_emailController.text);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -74,6 +81,8 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
     final size = MediaQuery.of(context).size;
+    final l10n = AppLocalizations.of(context);
+    final lang = context.watch<LanguageProvider>();
 
     return Scaffold(
       body: Stack(
@@ -123,9 +132,18 @@ class _LoginScreenState extends State<LoginScreen>
           SafeArea(
             child: Column(
               children: [
+                // ── Language toggle (top right) ───────────────────────
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8, right: 16),
+                    child: _LanguageToggle(lang: lang),
+                  ),
+                ),
+
                 // Hero section
                 SizedBox(
-                  height: size.height * 0.35,
+                  height: size.height * 0.30,
                   child: FadeTransition(
                     opacity: _fadeAnim,
                     child: Column(
@@ -149,9 +167,9 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Poultry Automation',
-                          style: TextStyle(
+                        Text(
+                          l10n.appName,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
@@ -159,9 +177,9 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          'Smart Farm Management',
-                          style: TextStyle(
+                        Text(
+                          l10n.smartFarmManagement,
+                          style: const TextStyle(
                             color: Colors.white60,
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
@@ -188,13 +206,14 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                          padding:
+                              const EdgeInsets.fromLTRB(24, 32, 24, 24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Sign in',
-                                style: TextStyle(
+                              Text(
+                                l10n.login,
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF1A1F2E),
@@ -210,18 +229,22 @@ class _LoginScreenState extends State<LoginScreen>
                                     return const SizedBox.shrink();
                                   }
                                   return Container(
-                                    margin: const EdgeInsets.only(bottom: 16),
+                                    margin:
+                                        const EdgeInsets.only(bottom: 16),
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFFFEBEE),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius:
+                                          BorderRadius.circular(12),
                                       border: Border.all(
                                           color: const Color(0xFFEF9A9A)),
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.error_outline_rounded,
-                                            color: Color(0xFFC62828), size: 18),
+                                        const Icon(
+                                            Icons.error_outline_rounded,
+                                            color: Color(0xFFC62828),
+                                            size: 18),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
@@ -246,22 +269,24 @@ class _LoginScreenState extends State<LoginScreen>
                                   children: [
                                     _buildField(
                                       controller: _emailController,
-                                      label: 'Email address',
+                                      label: l10n.email,
                                       icon: Icons.email_outlined,
-                                      keyboardType: TextInputType.emailAddress,
-                                      textInputAction: TextInputAction.next,
+                                      keyboardType:
+                                          TextInputType.emailAddress,
+                                      textInputAction:
+                                          TextInputAction.next,
                                       validator: (v) {
                                         if (v == null || v.isEmpty) {
-                                          return 'Email is required';
+                                          return l10n.emailRequired;
                                         }
                                         if (!v.contains('@')) {
-                                          return 'Enter a valid email';
+                                          return l10n.invalidEmailOrPassword;
                                         }
                                         return null;
                                       },
                                     ),
                                     const SizedBox(height: 14),
-                                    _buildPasswordField(),
+                                    _buildPasswordField(l10n),
                                     const SizedBox(height: 6),
                                     Align(
                                       alignment: Alignment.centerRight,
@@ -271,12 +296,12 @@ class _LoginScreenState extends State<LoginScreen>
                                           foregroundColor: AppColors.primary,
                                           padding: EdgeInsets.zero,
                                           minimumSize: Size.zero,
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
+                                          tapTargetSize: MaterialTapTargetSize
+                                              .shrinkWrap,
                                         ),
-                                        child: const Text(
-                                          'Forgot password?',
-                                          style: TextStyle(
+                                        child: Text(
+                                          l10n.forgotPassword,
+                                          style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600),
                                         ),
@@ -289,15 +314,19 @@ class _LoginScreenState extends State<LoginScreen>
                                           width: double.infinity,
                                           height: 54,
                                           child: ElevatedButton(
-                                            onPressed:
-                                                auth.isLoading ? null : _login,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.primary,
+                                            onPressed: auth.isLoading
+                                                ? null
+                                                : _login,
+                                            style:
+                                                ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  AppColors.primary,
                                               foregroundColor: Colors.white,
                                               elevation: 0,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                    BorderRadius.circular(14),
+                                                    BorderRadius.circular(
+                                                        14),
                                               ),
                                             ),
                                             child: auth.isLoading
@@ -310,11 +339,12 @@ class _LoginScreenState extends State<LoginScreen>
                                                       strokeWidth: 2.5,
                                                     ),
                                                   )
-                                                : const Text(
-                                                    'Sign In',
-                                                    style: TextStyle(
+                                                : Text(
+                                                    l10n.login,
+                                                    style: const TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                     ),
                                                   ),
                                           ),
@@ -369,19 +399,23 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+          borderSide:
+              const BorderSide(color: Color(0xFFE5E7EB), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide:
+              const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFC62828), width: 1),
+          borderSide:
+              const BorderSide(color: Color(0xFFC62828), width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFC62828), width: 2),
+          borderSide:
+              const BorderSide(color: Color(0xFFC62828), width: 2),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -391,7 +425,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField(AppLocalizations l10n) {
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
@@ -403,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen>
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
-        labelText: 'Password',
+        labelText: l10n.password,
         labelStyle:
             const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
         prefixIcon: const Icon(Icons.lock_outline_rounded,
@@ -427,29 +461,78 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+          borderSide:
+              const BorderSide(color: Color(0xFFE5E7EB), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide:
+              const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFC62828), width: 1),
+          borderSide:
+              const BorderSide(color: Color(0xFFC62828), width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFC62828), width: 2),
+          borderSide:
+              const BorderSide(color: Color(0xFFC62828), width: 2),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       validator: (v) {
-        if (v == null || v.isEmpty) return 'Password is required';
-        if (v.length < 6) return 'Password too short';
+        if (v == null || v.isEmpty) return l10n.passwordRequired;
+        if (v.length < 6) return l10n.passwordRequired;
         return null;
       },
       onChanged: (_) => context.read<AuthProvider>().clearError(),
+    );
+  }
+}
+
+// ── Language Toggle Widget ────────────────────────────────────────────────────
+class _LanguageToggle extends StatelessWidget {
+  final LanguageProvider lang;
+  const _LanguageToggle({required this.lang});
+
+  @override
+  Widget build(BuildContext context) {
+    final isAmharic = lang.isAmharic;
+    return GestureDetector(
+      onTap: () => lang.toggleLanguage(),
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: Colors.white.withOpacity(0.3), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '🌐',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isAmharic ? 'አማርኛ' : 'English',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.swap_horiz_rounded,
+                color: Colors.white70, size: 14),
+          ],
+        ),
+      ),
     );
   }
 }

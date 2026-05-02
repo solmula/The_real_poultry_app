@@ -10,6 +10,7 @@ class LiveDataProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _error;
   StreamSubscription<DatabaseEvent>? _subscription;
+  Timer? _loadingTimeout;
 
   SensorData? get data => _data;
   bool get isLoading => _isLoading;
@@ -19,9 +20,25 @@ class LiveDataProvider extends ChangeNotifier {
 
   void startListening() {
     _isLoading = true;
+    _error = null;
     notifyListeners();
+
+    // ── Timeout: if no data arrives in 5 seconds, stop spinner ───────────
+    _loadingTimeout?.cancel();
+    _loadingTimeout = Timer(const Duration(seconds: 5), () {
+      if (_isLoading) {
+        _isLoading = false;
+        if (_data == null) {
+          _error = 'No internet connection — showing last known data';
+        }
+        notifyListeners();
+      }
+    });
+
+    _subscription?.cancel();
     _subscription = _db.ref(FirebasePaths.live).onValue.listen(
       (event) {
+        _loadingTimeout?.cancel();
         if (event.snapshot.exists && event.snapshot.value != null) {
           try {
             final json = event.snapshot.value as Map<dynamic, dynamic>;
@@ -31,12 +48,15 @@ class LiveDataProvider extends ChangeNotifier {
             _error = 'Failed to parse sensor data';
           }
         } else {
-          _error = 'No data available';
+          if (_data == null) {
+            _error = 'No data available';
+          }
         }
         _isLoading = false;
         notifyListeners();
       },
       onError: (error) {
+        _loadingTimeout?.cancel();
         _error = 'Connection error — showing last known data';
         _isLoading = false;
         notifyListeners();
@@ -45,6 +65,8 @@ class LiveDataProvider extends ChangeNotifier {
   }
 
   void stopListening() {
+    _loadingTimeout?.cancel();
+    _loadingTimeout = null;
     _subscription?.cancel();
     _subscription = null;
   }

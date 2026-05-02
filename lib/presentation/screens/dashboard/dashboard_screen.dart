@@ -21,6 +21,8 @@ class DashboardScreen extends StatelessWidget {
       body: SafeArea(
         child: Consumer2<LiveDataProvider, AlertProvider>(
           builder: (context, live, alerts, _) {
+            final isFirstLoad = live.isLoading && live.data == null;
+
             return RefreshIndicator(
               color: AppColors.primary,
               onRefresh: () async {
@@ -37,25 +39,44 @@ class DashboardScreen extends StatelessWidget {
                         if (live.isStale && !live.isLoading)
                           _buildStaleBanner(live.lastUpdateText),
                         const SizedBox(height: 16),
-                        _buildSystemStatus(context, live.data),
-                        const SizedBox(height: 24),
-                        _sectionLabel(context, 'Climate'),
-                        const SizedBox(height: 12),
-                        _buildClimateGrid(context, live.data),
-                        const SizedBox(height: 24),
-                        _sectionLabel(context, 'Feed & Water'),
-                        const SizedBox(height: 12),
-                        _buildFeedWaterGrid(context, live.data),
-                        const SizedBox(height: 24),
-                        _sectionLabel(context, 'Egg Production'),
-                        const SizedBox(height: 12),
-                        _buildEggCard(context, live.data),
-                        const SizedBox(height: 24),
-                        if (alerts.activeCount > 0) ...[
-                          _sectionLabel(context, 'Active Alerts'),
+
+                        // ── First load → shimmer, else real data ──────────
+                        if (isFirstLoad) ...[
+                          _ShimmerBox(
+                              height: 48, borderRadius: 14),
+                          const SizedBox(height: 24),
+                          _shimmerSectionLabel(),
                           const SizedBox(height: 12),
-                          _buildAlertSummary(context, alerts),
+                          _ShimmerClimateGrid(),
+                          const SizedBox(height: 24),
+                          _shimmerSectionLabel(),
                           const SizedBox(height: 12),
+                          _ShimmerFeedWaterGrid(),
+                          const SizedBox(height: 24),
+                          _shimmerSectionLabel(),
+                          const SizedBox(height: 12),
+                          _ShimmerBox(height: 90, borderRadius: 16),
+                        ] else ...[
+                          _buildSystemStatus(context, live.data),
+                          const SizedBox(height: 24),
+                          _sectionLabel(context, 'Climate'),
+                          const SizedBox(height: 12),
+                          _buildClimateGrid(context, live.data),
+                          const SizedBox(height: 24),
+                          _sectionLabel(context, 'Feed & Water'),
+                          const SizedBox(height: 12),
+                          _buildFeedWaterGrid(context, live.data),
+                          const SizedBox(height: 24),
+                          _sectionLabel(context, 'Egg Production'),
+                          const SizedBox(height: 12),
+                          _buildEggCard(context, live.data),
+                          const SizedBox(height: 24),
+                          if (alerts.activeCount > 0) ...[
+                            _sectionLabel(context, 'Active Alerts'),
+                            const SizedBox(height: 12),
+                            _buildAlertSummary(context, alerts),
+                            const SizedBox(height: 12),
+                          ],
                         ],
                       ]),
                     ),
@@ -67,6 +88,10 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _shimmerSectionLabel() {
+    return const _ShimmerBox(height: 18, width: 100, borderRadius: 6);
   }
 
   Widget _buildAppBar(BuildContext context, LiveDataProvider live) {
@@ -90,7 +115,11 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           Text(
-            live.isLoading ? 'Loading...' : 'Updated ${live.lastUpdateText}',
+            live.isLoading && live.data == null
+                ? 'Connecting...'
+                : live.isLoading
+                    ? 'Refreshing...'
+                    : 'Updated ${live.lastUpdateText}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w400,
@@ -213,9 +242,7 @@ class DashboardScreen extends StatelessWidget {
             height: 10,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isOnline
-                  ? AppColors.statusGood
-                  : AppColors.statusWarning,
+              color: isOnline ? AppColors.statusGood : AppColors.statusWarning,
               boxShadow: [
                 BoxShadow(
                   color: (isOnline
@@ -507,7 +534,173 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// ─── Sensor Card ───────────────────────────────────────────────────────────
+// ── Shimmer base widget ───────────────────────────────────────────────────────
+class _ShimmerBox extends StatefulWidget {
+  final double height;
+  final double? width;
+  final double borderRadius;
+
+  const _ShimmerBox({
+    required this.height,
+    this.width,
+    required this.borderRadius,
+  });
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+    _animation = Tween<double>(begin: -1.5, end: 1.5).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark
+        ? Colors.white.withOpacity(0.06)
+        : Colors.black.withOpacity(0.06);
+    final highlightColor = isDark
+        ? Colors.white.withOpacity(0.12)
+        : Colors.black.withOpacity(0.10);
+
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, _) {
+        return Container(
+          height: widget.height,
+          width: widget.width,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              stops: const [0.0, 0.5, 1.0],
+              colors: [baseColor, highlightColor, baseColor],
+              transform: _SlidingGradientTransform(_animation.value),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SlidingGradientTransform extends GradientTransform {
+  final double slidePercent;
+  const _SlidingGradientTransform(this.slidePercent);
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    return Matrix4.translationValues(
+        bounds.width * slidePercent, 0.0, 0.0);
+  }
+}
+
+// ── Shimmer climate grid (matches real 2x3 grid) ─────────────────────────────
+class _ShimmerClimateGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.4,
+      children: List.generate(
+        6,
+        (_) => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.cardDark
+                : AppColors.cardLight,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ShimmerBox(height: 10, width: 80, borderRadius: 4),
+              _ShimmerBox(height: 28, width: 70, borderRadius: 6),
+              _ShimmerBox(height: 10, width: 60, borderRadius: 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shimmer feed/water grid (matches real 2x2 grid) ──────────────────────────
+class _ShimmerFeedWaterGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.cardDark
+        : AppColors.cardLight;
+
+    Widget shimmerCard() => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ShimmerBox(height: 10, width: 60, borderRadius: 4),
+              const SizedBox(height: 10),
+              _ShimmerBox(height: 24, width: 50, borderRadius: 6),
+              const SizedBox(height: 8),
+              _ShimmerBox(height: 6, borderRadius: 4),
+            ],
+          ),
+        );
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: shimmerCard()),
+            const SizedBox(width: 12),
+            Expanded(child: shimmerCard()),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: shimmerCard()),
+            const SizedBox(width: 12),
+            Expanded(child: shimmerCard()),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Sensor Card ──────────────────────────────────────────────────────────────
 class _SensorCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -585,7 +778,7 @@ class _SensorCard extends StatelessWidget {
   }
 }
 
-// ─── Level Card ────────────────────────────────────────────────────────────
+// ─── Level Card ───────────────────────────────────────────────────────────────
 class _LevelCard extends StatelessWidget {
   final String label;
   final double? percent;
