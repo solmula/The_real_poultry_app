@@ -6,33 +6,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> firebaseMessagingBackgroundHandler(
+  RemoteMessage message,
+) async {
   // OS handles notification tray automatically
 }
 
 class NotificationService {
   NotificationService._();
+
   static final NotificationService instance = NotificationService._();
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+
   final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
 
   static const _channelId = 'poultry_alerts';
   static const _channelName = 'Poultry Alerts';
-  static const _channelDesc = 'Critical alerts from your poultry house';
+  static const _channelDesc =
+      'Critical alerts from your poultry house';
 
   /// Navigation key (set from main.dart)
   static GlobalKey<NavigatorState>? navigatorKey;
 
   /// Foreground banner callback
-  static void Function(String title, String body, String severity)?
-      onForegroundAlert;
+  static void Function(
+    String title,
+    String body,
+    String severity,
+  )? onForegroundAlert;
 
   Future<void> initialize() async {
     /// 1 — Background handler
     FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler);
+      firebaseMessagingBackgroundHandler,
+    );
 
     /// 2 — Request permissions
     await _fcm.requestPermission(
@@ -79,14 +88,20 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
 
     /// 6 — App opened from background notification
-    FirebaseMessaging.onMessageOpenedApp.listen(_onNotificationOpened);
+    FirebaseMessaging.onMessageOpenedApp.listen(
+      _onNotificationOpened,
+    );
 
     /// 7 — App opened from terminated state
     final initial = await _fcm.getInitialMessage();
+
     if (initial != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _navigateToAlerts();
-      });
+      Future.delayed(
+        const Duration(milliseconds: 500),
+        () {
+          _navigateToAlerts();
+        },
+      );
     }
 
     /// 8 — iOS foreground presentation
@@ -102,22 +117,45 @@ class NotificationService {
 
     /// 10 — Save token
     await _saveTokenToFirestore();
-    _fcm.onTokenRefresh.listen((_) => _saveTokenToFirestore());
 
-    debugPrint('[FCM] Initialized. Token: ${await _fcm.getToken()}');
+    _fcm.onTokenRefresh.listen(
+      (_) => _saveTokenToFirestore(),
+    );
+
+    debugPrint(
+      '[FCM] Initialized. Token: ${await _fcm.getToken()}',
+    );
   }
 
   /// ───────────────── Foreground Message ─────────────────
   void _onForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
+
     if (notification == null) return;
 
     final title = notification.title ?? 'Poultry Alert';
+
     final body = notification.body ?? '';
+
     final severity = message.data['severity'] ?? 'INFO';
 
-    onForegroundAlert?.call(title, body, severity);
+    debugPrint(
+      '[FCM] Foreground message received. '
+      'Callback registered: ${onForegroundAlert != null}',
+    );
 
+    /// Trigger in-app banner
+    if (onForegroundAlert != null) {
+      debugPrint('[FCM] Triggering foreground banner');
+
+      onForegroundAlert!(
+        title,
+        body,
+        severity,
+      );
+    }
+
+    /// Show local notification while app is foregrounded
     _local.show(
       notification.hashCode,
       title,
@@ -143,11 +181,15 @@ class NotificationService {
 
   /// ───────────────── Notification Opened ─────────────────
   void _onNotificationOpened(RemoteMessage message) {
+    debugPrint('[FCM] Notification opened from background');
+
     _navigateToAlerts();
   }
 
   /// ───────────────── Local Notification Tap ─────────────────
   void _onNotificationTap(NotificationResponse response) {
+    debugPrint('[FCM] Local notification tapped');
+
     _navigateToAlerts();
   }
 
@@ -164,15 +206,22 @@ class NotificationService {
   Future<void> _saveTokenToFirestore() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
+
       if (user == null) return;
 
       final token = await _fcm.getToken();
+
       if (token == null) return;
 
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .set({'fcm_token': token}, SetOptions(merge: true));
+          .set(
+        {
+          'fcm_token': token,
+        },
+        SetOptions(merge: true),
+      );
 
       debugPrint('[FCM] Token saved');
     } catch (e) {
@@ -185,10 +234,13 @@ class NotificationService {
     switch (severity) {
       case 'CRITICAL':
         return const Color(0xFFB71C1C);
+
       case 'HIGH':
         return const Color(0xFFE65100);
+
       case 'WARNING':
         return const Color(0xFFF57F17);
+
       default:
         return const Color(0xFF1565C0);
     }
