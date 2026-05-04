@@ -6,6 +6,7 @@ import '../../data/providers/alert_provider.dart';
 import '../../data/providers/threshold_provider.dart';
 import '../../data/providers/command_provider.dart';
 import '../../data/services/notification_service.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'production/production_screen.dart';
 import 'history/history_screen.dart';
@@ -29,12 +30,12 @@ class _MainShellState extends State<MainShell> {
   String? _bannerSeverity;
   bool _bannerVisible = false;
 
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    ProductionScreen(),
-    HistoryScreen(),
-    AlertsScreen(),
-    MoreScreen(),
+  List<Widget> get _screens => [
+    DashboardScreen(onNavigateToAlerts: () => setState(() => _currentIndex = 3)),
+    const ProductionScreen(),
+    const HistoryScreen(),
+    const AlertsScreen(),
+    const MoreScreen(),
   ];
 
   @override
@@ -108,6 +109,7 @@ class _MainShellState extends State<MainShell> {
   Widget _buildBottomNav() {
     return Consumer<AlertProvider>(
       builder: (context, alertProvider, _) {
+        final l10n = AppLocalizations.of(context);
         return Container(
           decoration: BoxDecoration(
             border: Border(
@@ -119,17 +121,17 @@ class _MainShellState extends State<MainShell> {
             currentIndex: _currentIndex,
             onTap: (index) => setState(() => _currentIndex = index),
             items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_rounded),
-                label: 'Dashboard',
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.dashboard_rounded),
+                label: l10n.dashboard,
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.egg_rounded),
-                label: 'Production',
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.egg_rounded),
+                label: l10n.production,
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.show_chart_rounded),
-                label: 'History',
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.show_chart_rounded),
+                label: l10n.history,
               ),
               BottomNavigationBarItem(
                 icon: Stack(
@@ -165,11 +167,11 @@ class _MainShellState extends State<MainShell> {
                       ),
                   ],
                 ),
-                label: 'Alerts',
+                label: l10n.alerts,
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.more_horiz_rounded),
-                label: 'More',
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.more_horiz_rounded),
+                label: l10n.more,
               ),
             ],
           ),

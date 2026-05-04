@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/providers/live_data_provider.dart';
 import '../../../../data/providers/command_provider.dart';
 import '../../../../data/providers/auth_provider.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 class OverrideScreen extends StatelessWidget {
   const OverrideScreen({super.key});
@@ -14,13 +15,14 @@ class OverrideScreen extends StatelessWidget {
     final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: cardColor,
         surfaceTintColor: Colors.transparent,
-        title: Text('Manual Override', style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
+        title: Text(l10n.manualOverride, style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
         iconTheme: IconThemeData(color: textColor),
       ),
       body: Consumer3<LiveDataProvider, CommandProvider, AuthProvider>(
@@ -31,10 +33,10 @@ class OverrideScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
             children: [
-              if (isViewer) _ViewOnlyBanner(),
+              if (isViewer) _ViewOnlyBanner(l10n: l10n),
               if (isViewer) const SizedBox(height: 12),
 
-              _CommandStatusCard(cmd: cmd, isDark: isDark),
+              _CommandStatusCard(cmd: cmd, isDark: isDark, l10n: l10n),
               const SizedBox(height: 20),
 
               _SectionLabel(text: 'Climate Controls', isDark: isDark),
@@ -44,7 +46,9 @@ class OverrideScreen extends StatelessWidget {
                 currentState: d?.fanSpeed ?? '--',
                 isDark: isDark,
                 disabled: isViewer,
-                onSelect: (val) => _sendWithConfirm(context, cmd, label: 'Set fan to $val?', fanOverride: val),
+                l10n: l10n,
+                onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
+                    label: 'Set fan to \$val?', fanOverride: val),
               ),
               const SizedBox(height: 10),
 
@@ -56,7 +60,9 @@ class OverrideScreen extends StatelessWidget {
                 options: const ['ON', 'OFF', 'Auto'],
                 isDark: isDark,
                 disabled: isViewer,
-                onSelect: (val) => _sendWithConfirm(context, cmd, label: 'Set heater to $val?', heaterOverride: val == 'Auto' ? '' : val),
+                onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
+                    label: 'Set heater to \$val?',
+                    heaterOverride: val == 'Auto' ? '' : val),
               ),
               const SizedBox(height: 10),
 
@@ -68,7 +74,9 @@ class OverrideScreen extends StatelessWidget {
                 options: const ['OFF', 'DIM', 'ON', 'Auto'],
                 isDark: isDark,
                 disabled: isViewer,
-                onSelect: (val) => _sendWithConfirm(context, cmd, label: 'Set lights to $val?', lightsOverride: val == 'Auto' ? '' : val),
+                onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
+                    label: 'Set lights to \$val?',
+                    lightsOverride: val == 'Auto' ? '' : val),
               ),
               const SizedBox(height: 20),
 
@@ -84,7 +92,8 @@ class OverrideScreen extends StatelessWidget {
                 firebaseValues: const ['h1_left', 'h1_right', 'h2_left', 'h2_right', 'all'],
                 isDark: isDark,
                 disabled: isViewer,
-                onSelect: (val) => _sendWithConfirm(context, cmd, label: 'Trigger feeder: $val?', triggerFeeder: val),
+                onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
+                    label: 'Trigger feeder: \$val?', triggerFeeder: val),
               ),
               const SizedBox(height: 10),
 
@@ -97,7 +106,8 @@ class OverrideScreen extends StatelessWidget {
                 firebaseValues: const ['h1_t1', 'h1_t2', 'h1_t3', 'h1_t4', 'h2_t1', 'h2_t2', 'h2_t3', 'h2_t4', 'all'],
                 isDark: isDark,
                 disabled: isViewer,
-                onSelect: (val) => _sendWithConfirm(context, cmd, label: 'Run manure belt: $val?', triggerManure: val),
+                onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
+                    label: 'Run manure belt: \$val?', triggerManure: val),
               ),
               const SizedBox(height: 10),
 
@@ -110,11 +120,12 @@ class OverrideScreen extends StatelessWidget {
                 firebaseValues: const ['h1', 'h2', 'both'],
                 isDark: isDark,
                 disabled: isViewer,
-                onSelect: (val) => _sendWithConfirm(context, cmd, label: 'Trigger water pump: $val?', triggerPump: val),
+                onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
+                    label: 'Trigger water pump: \$val?', triggerPump: val),
               ),
               const SizedBox(height: 24),
 
-              if (!isViewer) _ClearAllButton(cmd: cmd, isDark: isDark),
+              if (!isViewer) _ClearAllButton(cmd: cmd, isDark: isDark, l10n: l10n),
             ],
           );
         },
@@ -124,7 +135,8 @@ class OverrideScreen extends StatelessWidget {
 
   Future<void> _sendWithConfirm(
     BuildContext context,
-    CommandProvider cmd, {
+    CommandProvider cmd,
+    AppLocalizations l10n, {
     required String label,
     String? fanOverride,
     String? heaterOverride,
@@ -136,11 +148,15 @@ class OverrideScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Confirm Override'),
+        title: Text(l10n.confirmCommand),
         content: Text(label),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel)),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.confirm)),
         ],
       ),
     );
@@ -158,6 +174,9 @@ class OverrideScreen extends StatelessWidget {
 }
 
 class _ViewOnlyBanner extends StatelessWidget {
+  final AppLocalizations l10n;
+  const _ViewOnlyBanner({required this.l10n});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -167,13 +186,16 @@ class _ViewOnlyBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.statusOffline.withOpacity(0.3)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.lock_rounded, color: AppColors.statusOffline, size: 16),
-          SizedBox(width: 8),
+          const Icon(Icons.lock_rounded, color: AppColors.statusOffline, size: 16),
+          const SizedBox(width: 8),
           Expanded(
             child: Text('View only — you do not have permission to send commands',
-                style: TextStyle(fontSize: 12, color: AppColors.statusOffline, fontWeight: FontWeight.w500)),
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.statusOffline,
+                    fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -184,7 +206,9 @@ class _ViewOnlyBanner extends StatelessWidget {
 class _CommandStatusCard extends StatelessWidget {
   final CommandProvider cmd;
   final bool isDark;
-  const _CommandStatusCard({required this.cmd, required this.isDark});
+  final AppLocalizations l10n;
+  const _CommandStatusCard(
+      {required this.cmd, required this.isDark, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -194,24 +218,46 @@ class _CommandStatusCard extends StatelessWidget {
     String message;
     switch (cmd.status) {
       case CommandStatus.pending:
-        color = AppColors.statusWarning; icon = Icons.hourglass_top_rounded; message = 'Command sent — waiting for ESP32...'; break;
+        color = AppColors.statusWarning;
+        icon = Icons.hourglass_top_rounded;
+        message = 'Command sent — waiting for ESP32...';
+        break;
       case CommandStatus.executed:
-        color = AppColors.statusGood; icon = Icons.check_circle_rounded; message = 'Command executed successfully'; break;
+        color = AppColors.statusGood;
+        icon = Icons.check_circle_rounded;
+        message = 'Command executed successfully';
+        break;
       case CommandStatus.expired:
-        color = AppColors.statusCritical; icon = Icons.error_rounded; message = cmd.errorMessage ?? 'Command expired — ESP32 may be offline'; break;
+        color = AppColors.statusCritical;
+        icon = Icons.error_rounded;
+        message = cmd.errorMessage ?? l10n.commandExpired;
+        break;
       default:
-        color = AppColors.statusCritical; icon = Icons.wifi_off_rounded; message = cmd.errorMessage ?? 'Cannot send command — no internet connection';
+        color = AppColors.statusCritical;
+        icon = Icons.wifi_off_rounded;
+        message = cmd.errorMessage ?? l10n.cannotSendOffline;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.3))),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3))),
       child: Row(
         children: [
           cmd.status == CommandStatus.pending
-              ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: color))
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: color))
               : Icon(icon, color: color, size: 18),
           const SizedBox(width: 10),
-          Expanded(child: Text(message, style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w500))),
+          Expanded(
+              child: Text(message,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: color,
+                      fontWeight: FontWeight.w500))),
         ],
       ),
     );
@@ -222,10 +268,15 @@ class _SectionLabel extends StatelessWidget {
   final String text;
   final bool isDark;
   const _SectionLabel({required this.text, required this.isDark});
+
   @override
   Widget build(BuildContext context) {
     return Text(text.toUpperCase(),
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 1.2));
+        style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textSecondary,
+            letterSpacing: 1.2));
   }
 }
 
@@ -234,7 +285,13 @@ class _FanOverrideCard extends StatelessWidget {
   final bool isDark;
   final bool disabled;
   final void Function(String) onSelect;
-  const _FanOverrideCard({required this.currentState, required this.isDark, required this.disabled, required this.onSelect});
+  final AppLocalizations l10n;
+  const _FanOverrideCard(
+      {required this.currentState,
+      required this.isDark,
+      required this.disabled,
+      required this.onSelect,
+      required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -243,16 +300,21 @@ class _FanOverrideCard extends StatelessWidget {
     const options = ['OFF', 'LOW', 'MED', 'HIGH', 'MAX'];
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      decoration:
+          BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
             const Icon(Icons.wind_power_rounded, color: AppColors.primary, size: 20),
             const SizedBox(width: 10),
-            Text('Fan Speed', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+            Text(l10n.fanSpeed,
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
             const Spacer(),
-            Text('Now: $currentState', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text('${'Now'}: $currentState',
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.textSecondary)),
           ]),
           const SizedBox(height: 14),
           Row(
@@ -266,10 +328,19 @@ class _FanOverrideCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: isActive ? AppColors.primary : AppColors.primary.withOpacity(0.08),
+                        color: isActive
+                            ? AppColors.primary
+                            : AppColors.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Center(child: Text(opt, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isActive ? Colors.white : AppColors.primary))),
+                      child: Center(
+                          child: Text(opt,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: isActive
+                                      ? Colors.white
+                                      : AppColors.primary))),
                     ),
                   ),
                 ),
@@ -291,24 +362,38 @@ class _ToggleOverrideCard extends StatelessWidget {
   final bool isDark;
   final bool disabled;
   final void Function(String) onSelect;
-  const _ToggleOverrideCard({required this.title, required this.icon, required this.iconColor, required this.currentLabel, required this.options, required this.isDark, required this.disabled, required this.onSelect});
+  const _ToggleOverrideCard(
+      {required this.title,
+      required this.icon,
+      required this.iconColor,
+      required this.currentLabel,
+      required this.options,
+      required this.isDark,
+      required this.disabled,
+      required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      decoration:
+          BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
             Icon(icon, color: iconColor, size: 20),
             const SizedBox(width: 10),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
             const Spacer(),
-            Text('Now: $currentLabel', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text('${'Now'}: $currentLabel',
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.textSecondary)),
           ]),
           const SizedBox(height: 14),
           Wrap(
@@ -318,12 +403,18 @@ class _ToggleOverrideCard extends StatelessWidget {
               return GestureDetector(
                 onTap: disabled ? null : () => onSelect(opt),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isActive ? iconColor : iconColor.withOpacity(0.08),
+                    color:
+                        isActive ? iconColor : iconColor.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(opt, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isActive ? Colors.white : iconColor)),
+                  child: Text(opt,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isActive ? Colors.white : iconColor)),
                 ),
               );
             }).toList(),
@@ -344,7 +435,16 @@ class _TriggerCard extends StatelessWidget {
   final bool isDark;
   final bool disabled;
   final void Function(String) onSelect;
-  const _TriggerCard({required this.title, required this.icon, required this.iconColor, required this.iconBg, required this.options, required this.firebaseValues, required this.isDark, required this.disabled, required this.onSelect});
+  const _TriggerCard(
+      {required this.title,
+      required this.icon,
+      required this.iconColor,
+      required this.iconBg,
+      required this.options,
+      required this.firebaseValues,
+      required this.isDark,
+      required this.disabled,
+      required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -352,14 +452,25 @@ class _TriggerCard extends StatelessWidget {
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      decoration:
+          BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)),
+            Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: iconColor, size: 20)),
             const SizedBox(width: 12),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: textColor)),
           ]),
           const SizedBox(height: 14),
           Wrap(
@@ -369,9 +480,17 @@ class _TriggerCard extends StatelessWidget {
               return GestureDetector(
                 onTap: disabled ? null : () => onSelect(firebaseValues[i]),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(color: iconBg.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: iconBg.withOpacity(0.3))),
-                  child: Text(options[i], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: iconBg)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: iconBg.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: iconBg.withOpacity(0.3))),
+                  child: Text(options[i],
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: iconBg)),
                 ),
               );
             }),
@@ -385,7 +504,9 @@ class _TriggerCard extends StatelessWidget {
 class _ClearAllButton extends StatelessWidget {
   final CommandProvider cmd;
   final bool isDark;
-  const _ClearAllButton({required this.cmd, required this.isDark});
+  final AppLocalizations l10n;
+  const _ClearAllButton(
+      {required this.cmd, required this.isDark, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -396,14 +517,17 @@ class _ClearAllButton extends StatelessWidget {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (_) => AlertDialog(
-              title: const Text('Clear All Overrides'),
-              content: const Text('This will reset all override commands and return control to the ESP32 automatic system.'),
+              title: Text('Clear All Overrides'),
+              content: Text('This will reset all override commands and return control to the ESP32 automatic system.'),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l10n.cancel)),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusCritical),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.statusCritical),
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Clear All'),
+                  child: Text('Clear All'),
                 ),
               ],
             ),
@@ -411,11 +535,14 @@ class _ClearAllButton extends StatelessWidget {
           if (confirmed == true) await cmd.clearCommands();
         },
         icon: const Icon(Icons.clear_all_rounded, color: AppColors.statusCritical),
-        label: const Text('Clear All Overrides', style: TextStyle(color: AppColors.statusCritical, fontWeight: FontWeight.w600)),
+        label: Text('Clear All Overrides',
+            style: const TextStyle(
+                color: AppColors.statusCritical, fontWeight: FontWeight.w600)),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           side: BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

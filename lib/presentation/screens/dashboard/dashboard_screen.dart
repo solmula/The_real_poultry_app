@@ -8,7 +8,8 @@ import '../../../data/models/sensor_data.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onNavigateToAlerts;
+  const DashboardScreen({super.key, this.onNavigateToAlerts});
 
   Color _cardColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
@@ -141,7 +142,7 @@ class DashboardScreen extends StatelessWidget {
         IconButton(
           icon: Icon(Icons.notifications_outlined,
               color: isDark ? AppColors.textLight : AppColors.textPrimary),
-          onPressed: () {},
+          onPressed: () => onNavigateToAlerts?.call(),
         ),
         const SizedBox(width: 4),
       ],

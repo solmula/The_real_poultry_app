@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/providers/live_data_provider.dart';
 import '../../../../data/models/sensor_data.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 class FeedWaterScreen extends StatelessWidget {
   const FeedWaterScreen({super.key});
@@ -13,13 +14,14 @@ class FeedWaterScreen extends StatelessWidget {
     final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: cardColor,
         surfaceTintColor: Colors.transparent,
-        title: Text('Feed & Water', style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
+        title: Text(l10n.feedWater, style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
         iconTheme: IconThemeData(color: textColor),
       ),
       body: Consumer<LiveDataProvider>(
@@ -29,7 +31,7 @@ class FeedWaterScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
             children: [
               if (live.isStale)
-                _StaleBanner(lastUpdate: live.lastUpdateText),
+                _StaleBanner(lastUpdate: live.lastUpdateText, l10n: l10n),
               if (live.isStale) const SizedBox(height: 12),
 
               _SectionLabel(text: 'Water Tanks', isDark: isDark),
@@ -38,19 +40,21 @@ class FeedWaterScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _WaterCard(
-                      label: 'H1 Water',
+                      label: l10n.h1Water,
                       pct: d?.h1WaterPct,
                       pumpState: d?.h1PumpState,
                       isDark: isDark,
+                      l10n: l10n,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _WaterCard(
-                      label: 'H2 Water',
+                      label: l10n.h2Water,
                       pct: d?.h2WaterPct,
                       pumpState: d?.h2PumpState,
                       isDark: isDark,
+                      l10n: l10n,
                     ),
                   ),
                 ],
@@ -63,19 +67,21 @@ class FeedWaterScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _FeedCard(
-                      label: 'H1 Feed',
+                      label: l10n.h1Feed,
                       kg: d?.h1FeedKg,
                       pct: d?.h1FeedPct,
                       isDark: isDark,
+                      l10n: l10n,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _FeedCard(
-                      label: 'H2 Feed',
+                      label: l10n.h2Feed,
                       kg: d?.h2FeedKg,
                       pct: d?.h2FeedPct,
                       isDark: isDark,
+                      l10n: l10n,
                     ),
                   ),
                 ],
@@ -84,7 +90,7 @@ class FeedWaterScreen extends StatelessWidget {
 
               _SectionLabel(text: 'Feed Estimate', isDark: isDark),
               const SizedBox(height: 10),
-              _EstimateCard(data: d, isDark: isDark),
+              _EstimateCard(data: d, isDark: isDark, l10n: l10n),
             ],
           );
         },
@@ -95,7 +101,8 @@ class FeedWaterScreen extends StatelessWidget {
 
 class _StaleBanner extends StatelessWidget {
   final String lastUpdate;
-  const _StaleBanner({required this.lastUpdate});
+  final AppLocalizations l10n;
+  const _StaleBanner({required this.lastUpdate, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +119,7 @@ class _StaleBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Data may be outdated — last update $lastUpdate',
+              l10n.dataMayBeOutdated(lastUpdate),
               style: const TextStyle(fontSize: 12, color: AppColors.statusWarning, fontWeight: FontWeight.w500),
             ),
           ),
@@ -141,8 +148,15 @@ class _WaterCard extends StatelessWidget {
   final double? pct;
   final String? pumpState;
   final bool isDark;
+  final AppLocalizations l10n;
 
-  const _WaterCard({required this.label, required this.pct, required this.pumpState, required this.isDark});
+  const _WaterCard({
+    required this.label,
+    required this.pct,
+    required this.pumpState,
+    required this.isDark,
+    required this.l10n,
+  });
 
   Color get _levelColor {
     if (pct == null) return AppColors.statusOffline;
@@ -159,7 +173,7 @@ class _WaterCard extends StatelessWidget {
     }
   }
 
-  String get _pumpLabel {
+  String _pumpLabel(AppLocalizations l10n) {
     switch (pumpState) {
       case 'ON': return 'Pump ON';
       case 'FAULT': return 'Pump FAULT';
@@ -198,13 +212,13 @@ class _WaterCard extends StatelessWidget {
             children: [
               Container(width: 8, height: 8, decoration: BoxDecoration(color: _pumpColor, shape: BoxShape.circle)),
               const SizedBox(width: 6),
-              Text(_pumpLabel, style: TextStyle(fontSize: 11, color: _pumpColor, fontWeight: FontWeight.w600)),
+              Text(_pumpLabel(l10n), style: TextStyle(fontSize: 11, color: _pumpColor, fontWeight: FontWeight.w600)),
             ],
           ),
           if (pumpState == 'FAULT')
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text('Check pump', style: TextStyle(fontSize: 10, color: AppColors.statusCritical)),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Check pump', style: const TextStyle(fontSize: 10, color: AppColors.statusCritical)),
             ),
         ],
       ),
@@ -217,8 +231,15 @@ class _FeedCard extends StatelessWidget {
   final double? kg;
   final double? pct;
   final bool isDark;
+  final AppLocalizations l10n;
 
-  const _FeedCard({required this.label, required this.kg, required this.pct, required this.isDark});
+  const _FeedCard({
+    required this.label,
+    required this.kg,
+    required this.pct,
+    required this.isDark,
+    required this.l10n,
+  });
 
   Color get _levelColor {
     if (pct == null) return AppColors.statusOffline;
@@ -232,6 +253,15 @@ class _FeedCard extends StatelessWidget {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
     final fillPct = (pct ?? 0).clamp(0.0, 100.0) / 100.0;
+
+    String statusText;
+    if (_levelColor == AppColors.statusCritical) {
+      statusText = 'Critically low';
+    } else if (_levelColor == AppColors.statusWarning) {
+      statusText = 'Low — schedule refill';
+    } else {
+      statusText = l10n.ok;
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -261,11 +291,7 @@ class _FeedCard extends StatelessWidget {
           ),
           Center(
             child: Text(
-              _levelColor == AppColors.statusCritical
-                  ? 'Critically low'
-                  : _levelColor == AppColors.statusWarning
-                      ? 'Low — schedule refill'
-                      : 'OK',
+              statusText,
               style: TextStyle(fontSize: 10, color: _levelColor),
             ),
           ),
@@ -312,8 +338,9 @@ class _CircularGauge extends StatelessWidget {
 class _EstimateCard extends StatelessWidget {
   final SensorData? data;
   final bool isDark;
+  final AppLocalizations l10n;
 
-  const _EstimateCard({required this.data, required this.isDark});
+  const _EstimateCard({required this.data, required this.isDark, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +351,7 @@ class _EstimateCard extends StatelessWidget {
     final h2Kg = data?.h2FeedKg ?? 0;
     final totalKg = h1Kg + h2Kg;
     const avgDailyKg = 110.0;
-    final daysLeft = totalKg > 0 ? (totalKg / avgDailyKg) : 0.0;
+    final daysRemaining = totalKg > 0 ? (totalKg / avgDailyKg) : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -348,14 +375,15 @@ class _EstimateCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Estimated feed remaining', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text('Estimated feed remaining',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text(
-                  data == null ? '--' : '${daysLeft.toStringAsFixed(1)} days',
+                  data == null ? '--' : '${daysRemaining.toStringAsFixed(1)} days',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: textColor),
                 ),
                 Text(
-                  'Based on ${totalKg.toStringAsFixed(1)} kg total at ~${avgDailyKg.toStringAsFixed(0)} kg/day',
+                  'Based on \${totalKg.toStringAsFixed(1)} kg at ~\${avgDailyKg.toStringAsFixed(0)} kg/day',
                   style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],

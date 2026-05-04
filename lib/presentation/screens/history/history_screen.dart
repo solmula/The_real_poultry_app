@@ -7,6 +7,7 @@ import '../../../data/models/daily_report.dart';
 import '../../../data/providers/threshold_provider.dart';
 import '../../../data/models/threshold_model.dart';
 import '../../../core/constants/firebase_paths.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 // ── Sensor history record (from Firestore sensor_history collection) ────────
 class _SensorRecord {
@@ -81,11 +82,11 @@ class _SensorRecord {
 enum _Range { h24, d7, d30 }
 
 extension _RangeExt on _Range {
-  String get label {
+  String label(AppLocalizations l10n) {
     switch (this) {
-      case _Range.h24: return '24h';
-      case _Range.d7:  return '7d';
-      case _Range.d30: return '30d';
+      case _Range.h24: return l10n.last24h;
+      case _Range.d7:  return l10n.last7d;
+      case _Range.d30: return l10n.last30d;
     }
   }
 
@@ -208,6 +209,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final l10n = AppLocalizations.of(context);
     final thresholds = context.watch<ThresholdProvider>().thresholds;
 
     return Scaffold(
@@ -222,7 +224,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('History',
+                  Text(l10n.history,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -231,7 +233,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   Text(
                     _records.isEmpty
                         ? 'No data'
-                        : '${_records.length} readings · ${_range.label}',
+                        : '${_records.length} readings · ${_range.label(l10n)}',
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textSecondary),
                   ),
@@ -256,12 +258,12 @@ class _HistoryScreenState extends State<HistoryScreen>
                 unselectedLabelColor: AppColors.textSecondary,
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
-                tabs: const [
-                  Tab(text: 'Temperature'),
+                tabs: [
+                  Tab(text: l10n.temperatureChart),
                   Tab(text: 'Humidity'),
-                  Tab(text: 'NH₃ / CO₂'),
-                  Tab(text: 'Eggs'),
-                  Tab(text: 'Feed'),
+                  Tab(text: l10n.nh3Co2Chart),
+                  Tab(text: l10n.eggsChart),
+                  Tab(text: l10n.feedChart),
                 ],
               ),
             ),
@@ -269,11 +271,11 @@ class _HistoryScreenState extends State<HistoryScreen>
           body: TabBarView(
             controller: _tabController,
             children: [
-              _buildTempTab(isDark, thresholds),
-              _buildHumidityTab(isDark, thresholds),
-              _buildGasTab(isDark, thresholds),
-              _buildEggsTab(isDark),
-              _buildFeedTab(isDark),
+              _buildTempTab(isDark, thresholds, l10n),
+              _buildHumidityTab(isDark, thresholds, l10n),
+              _buildGasTab(isDark, thresholds, l10n),
+              _buildEggsTab(isDark, l10n),
+              _buildFeedTab(isDark, l10n),
             ],
           ),
         ),
@@ -282,20 +284,20 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   // ── Temperature tab ────────────────────────────────────────────────────────
-  Widget _buildTempTab(bool isDark, ThresholdModel t) {
+  Widget _buildTempTab(bool isDark, ThresholdModel t, AppLocalizations l10n) {
     return _RefreshableTab(
       onRefresh: _loadAll,
       children: [
         _buildSensorChartCard(
-          title: 'Temperature',
+          title: l10n.temperatureChart,
           subtitle: 'Avg, min and max °C over time',
           isDark: isDark,
           child: _loadingRecords
               ? _loadingWidget()
               : _recordsError != null
-                  ? _errorWidget(_recordsError!)
+                  ? _errorWidget(context, _recordsError!)
                   : _records.isEmpty
-                      ? _emptyWidget()
+                      ? _emptyWidget(context)
                       : _MultiLineChart(
                           records: _records,
                           lines: [
@@ -332,12 +334,12 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         const SizedBox(height: 16),
         _buildLegendCard(isDark, [
-          _LegendItem('Avg temp', AppColors.statusWarning),
-          _LegendItem('Min temp', AppColors.severityInfo),
-          _LegendItem('Max temp', AppColors.statusCritical),
-          _LegendItem('Fan on threshold', AppColors.statusWarning,
+          _LegendItem('Avg', AppColors.statusWarning),
+          _LegendItem('Min', AppColors.severityInfo),
+          _LegendItem('Max', AppColors.statusCritical),
+          _LegendItem('Fan on', AppColors.statusWarning,
               dashed: true),
-          _LegendItem('Heat on threshold', AppColors.severityInfo,
+          _LegendItem('Heat on', AppColors.severityInfo,
               dashed: true),
         ]),
       ],
@@ -345,20 +347,20 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   // ── Humidity tab ───────────────────────────────────────────────────────────
-  Widget _buildHumidityTab(bool isDark, ThresholdModel t) {
+  Widget _buildHumidityTab(bool isDark, ThresholdModel t, AppLocalizations l10n) {
     return _RefreshableTab(
       onRefresh: _loadAll,
       children: [
         _buildSensorChartCard(
-          title: 'Relative Humidity',
+          title: 'Humidity',
           subtitle: 'Average %RH over time',
           isDark: isDark,
           child: _loadingRecords
               ? _loadingWidget()
               : _recordsError != null
-                  ? _errorWidget(_recordsError!)
+                  ? _errorWidget(context, _recordsError!)
                   : _records.isEmpty
-                      ? _emptyWidget()
+                      ? _emptyWidget(context)
                       : _SingleLineChart(
                           records: _records,
                           getValue: (r) => r.rhAvg,
@@ -379,7 +381,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         const SizedBox(height: 16),
         _buildLegendCard(isDark, [
           _LegendItem('Humidity', AppColors.severityInfo),
-          _LegendItem('Warning threshold (${t.rhHigh.toInt()}%)',
+          _LegendItem('${'RH warn'} (${t.rhHigh.toInt()}%)',
               AppColors.statusWarning,
               dashed: true),
         ]),
@@ -388,7 +390,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   // ── Gas tab ────────────────────────────────────────────────────────────────
-  Widget _buildGasTab(bool isDark, ThresholdModel t) {
+  Widget _buildGasTab(bool isDark, ThresholdModel t, AppLocalizations l10n) {
     return _RefreshableTab(
       onRefresh: _loadAll,
       children: [
@@ -399,9 +401,9 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: _loadingRecords
               ? _loadingWidget()
               : _recordsError != null
-                  ? _errorWidget(_recordsError!)
+                  ? _errorWidget(context, _recordsError!)
                   : _records.isEmpty
-                      ? _emptyWidget()
+                      ? _emptyWidget(context)
                       : _SingleLineChart(
                           records: _records,
                           getValue: (r) => r.nh3Max,
@@ -433,9 +435,9 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: _loadingRecords
               ? _loadingWidget()
               : _recordsError != null
-                  ? _errorWidget(_recordsError!)
+                  ? _errorWidget(context, _recordsError!)
                   : _records.isEmpty
-                      ? _emptyWidget()
+                      ? _emptyWidget(context)
                       : _SingleLineChart(
                           records: _records,
                           getValue: (r) => r.co2Avg,
@@ -453,15 +455,15 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         const SizedBox(height: 16),
         _buildLegendCard(isDark, [
-          _LegendItem('NH₃', AppColors.severityHigh),
-          _LegendItem('NH₃ warn (${t.nh3Warn.toInt()} ppm)',
+          _LegendItem('Ammonia (NH₃)', AppColors.severityHigh),
+          _LegendItem('NH₃ ${'Warn'} (${t.nh3Warn.toInt()} ppm)',
               AppColors.statusWarning, dashed: true),
-          _LegendItem('NH₃ high (${t.nh3High.toInt()} ppm)',
+          _LegendItem('NH₃ ${'High'} (${t.nh3High.toInt()} ppm)',
               AppColors.severityHigh, dashed: true),
-          _LegendItem('NH₃ critical (${t.nh3Critical.toInt()} ppm)',
+          _LegendItem('NH₃ ${'Critical'} (${t.nh3Critical.toInt()} ppm)',
               AppColors.statusCritical, dashed: true),
-          _LegendItem('CO₂', AppColors.primary),
-          _LegendItem('CO₂ high (${t.co2High.toInt()} ppm)',
+          _LegendItem('Carbon Dioxide (CO₂)', AppColors.primary),
+          _LegendItem('CO₂ ${'High'} (${t.co2High.toInt()} ppm)',
               AppColors.statusCritical, dashed: true),
         ]),
       ],
@@ -469,7 +471,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   // ── Eggs tab ───────────────────────────────────────────────────────────────
-  Widget _buildEggsTab(bool isDark) {
+  Widget _buildEggsTab(bool isDark, AppLocalizations l10n) {
     return _RefreshableTab(
       onRefresh: _loadAll,
       children: [
@@ -480,7 +482,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: _loadingReports
               ? _loadingWidget()
               : _reports.isEmpty
-                  ? _emptyWidget()
+                  ? _emptyWidget(context)
                   : _DailyBarChart(
                       reports: _reports,
                       getValue: (r) => r.totalEggs.toDouble(),
@@ -496,7 +498,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: _loadingReports
               ? _loadingWidget()
               : _reports.isEmpty
-                  ? _emptyWidget()
+                  ? _emptyWidget(context)
                   : _DailyLineChart(
                       reports: _reports,
                       getValue: (r) => r.layingRatePct,
@@ -514,7 +516,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   // ── Feed tab ───────────────────────────────────────────────────────────────
-  Widget _buildFeedTab(bool isDark) {
+  Widget _buildFeedTab(bool isDark, AppLocalizations l10n) {
     return _RefreshableTab(
       onRefresh: _loadAll,
       children: [
@@ -525,7 +527,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: _loadingReports
               ? _loadingWidget()
               : _reports.isEmpty
-                  ? _emptyWidget()
+                  ? _emptyWidget(context)
                   : _DailyBarChart(
                       reports: _reports,
                       getValue: (r) => r.feedConsumedKg,
@@ -541,7 +543,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: _loadingReports
               ? _loadingWidget()
               : _reports.isEmpty
-                  ? _emptyWidget()
+                  ? _emptyWidget(context)
                   : _DailyLineChart(
                       reports: _reports,
                       getValue: (r) => r.fcr,
@@ -637,42 +639,48 @@ class _HistoryScreenState extends State<HistoryScreen>
       child: CircularProgressIndicator(
           color: AppColors.primary, strokeWidth: 2));
 
-  Widget _emptyWidget() => const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bar_chart_rounded,
-                size: 36, color: AppColors.textSecondary),
-            SizedBox(height: 8),
-            Text('No data for this period',
-                style: TextStyle(
-                    fontSize: 13, color: AppColors.textSecondary)),
-          ],
-        ),
-      );
+  Widget _emptyWidget(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.bar_chart_rounded,
+              size: 36, color: AppColors.textSecondary),
+          const SizedBox(height: 8),
+          Text('No data for this period',
+              style: const TextStyle(
+                  fontSize: 13, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
 
-  Widget _errorWidget(String error) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 32, color: AppColors.statusCritical),
-            const SizedBox(height: 8),
-            const Text('Failed to load',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.statusCritical)),
-            const SizedBox(height: 4),
-            TextButton(
-              onPressed: _loadRecords,
-              child: const Text('Retry',
-                  style: TextStyle(color: AppColors.primary)),
-            ),
-          ],
-        ),
-      );
-}
+  Widget _errorWidget(BuildContext context, String error) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              size: 32, color: AppColors.statusCritical),
+          const SizedBox(height: 8),
+          Text(l10n.failedToLoad,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.statusCritical)),
+          const SizedBox(height: 4),
+          TextButton(
+            onPressed: _loadRecords,
+            child: Text(l10n.retry,
+                style: const TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+} // end _HistoryScreenState
 
 // ── Range Selector ───────────────────────────────────────────────────────────
 class _RangeSelector extends StatelessWidget {
@@ -688,6 +696,7 @@ class _RangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(right: 4),
       child: Row(
@@ -707,7 +716,7 @@ class _RangeSelector extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                r.label,
+                r.label(l10n),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -1284,6 +1293,7 @@ class _SummaryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
     final last7 =
