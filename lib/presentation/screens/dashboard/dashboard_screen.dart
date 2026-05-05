@@ -43,7 +43,7 @@ class DashboardScreen extends StatelessWidget {
                           _buildStaleBanner(live.lastUpdateText, l10n),
                         const SizedBox(height: 16),
                         if (isFirstLoad) ...[
-                          _ShimmerBox(height: 48, borderRadius: 14),
+                          const _ShimmerBox(height: 48, borderRadius: 14),
                           const SizedBox(height: 24),
                           _shimmerSectionLabel(),
                           const SizedBox(height: 12),
@@ -55,7 +55,7 @@ class DashboardScreen extends StatelessWidget {
                           const SizedBox(height: 24),
                           _shimmerSectionLabel(),
                           const SizedBox(height: 12),
-                          _ShimmerBox(height: 90, borderRadius: 16),
+                          const _ShimmerBox(height: 90, borderRadius: 16),
                         ] else ...[
                           _buildSystemStatus(context, live.data, l10n),
                           const SizedBox(height: 24),

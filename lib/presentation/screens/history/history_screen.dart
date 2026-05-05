@@ -165,7 +165,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       setState(() {
         _records = snap.docs
             .map((d) => _SensorRecord.fromFirestore(
-                d.data() as Map<String, dynamic>))
+                d.data()))
             .toList();
         _loadingRecords = false;
       });
@@ -260,7 +260,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                 tabAlignment: TabAlignment.start,
                 tabs: [
                   Tab(text: l10n.temperatureChart),
-                  Tab(text: 'Humidity'),
+                  const Tab(text: 'Humidity'),
                   Tab(text: l10n.nh3Co2Chart),
                   Tab(text: l10n.eggsChart),
                   Tab(text: l10n.feedChart),
@@ -334,12 +334,12 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         const SizedBox(height: 16),
         _buildLegendCard(isDark, [
-          _LegendItem('Avg', AppColors.statusWarning),
-          _LegendItem('Min', AppColors.severityInfo),
-          _LegendItem('Max', AppColors.statusCritical),
-          _LegendItem('Fan on', AppColors.statusWarning,
+          const _LegendItem('Avg', AppColors.statusWarning),
+          const _LegendItem('Min', AppColors.severityInfo),
+          const _LegendItem('Max', AppColors.statusCritical),
+          const _LegendItem('Fan on', AppColors.statusWarning,
               dashed: true),
-          _LegendItem('Heat on', AppColors.severityInfo,
+          const _LegendItem('Heat on', AppColors.severityInfo,
               dashed: true),
         ]),
       ],
@@ -380,7 +380,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         const SizedBox(height: 16),
         _buildLegendCard(isDark, [
-          _LegendItem('Humidity', AppColors.severityInfo),
+          const _LegendItem('Humidity', AppColors.severityInfo),
           _LegendItem('${'RH warn'} (${t.rhHigh.toInt()}%)',
               AppColors.statusWarning,
               dashed: true),
@@ -455,14 +455,14 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         const SizedBox(height: 16),
         _buildLegendCard(isDark, [
-          _LegendItem('Ammonia (NH₃)', AppColors.severityHigh),
+          const _LegendItem('Ammonia (NH₃)', AppColors.severityHigh),
           _LegendItem('NH₃ ${'Warn'} (${t.nh3Warn.toInt()} ppm)',
               AppColors.statusWarning, dashed: true),
           _LegendItem('NH₃ ${'High'} (${t.nh3High.toInt()} ppm)',
               AppColors.severityHigh, dashed: true),
           _LegendItem('NH₃ ${'Critical'} (${t.nh3Critical.toInt()} ppm)',
               AppColors.statusCritical, dashed: true),
-          _LegendItem('Carbon Dioxide (CO₂)', AppColors.primary),
+          const _LegendItem('Carbon Dioxide (CO₂)', AppColors.primary),
           _LegendItem('CO₂ ${'High'} (${t.co2High.toInt()} ppm)',
               AppColors.statusCritical, dashed: true),
         ]),
@@ -641,15 +641,15 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Widget _emptyWidget(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.bar_chart_rounded,
+          Icon(Icons.bar_chart_rounded,
               size: 36, color: AppColors.textSecondary),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text('No data for this period',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13, color: AppColors.textSecondary)),
         ],
       ),

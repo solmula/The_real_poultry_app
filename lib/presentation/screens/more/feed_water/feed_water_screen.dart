@@ -216,9 +216,9 @@ class _WaterCard extends StatelessWidget {
             ],
           ),
           if (pumpState == 'FAULT')
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text('Check pump', style: const TextStyle(fontSize: 10, color: AppColors.statusCritical)),
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('Check pump', style: TextStyle(fontSize: 10, color: AppColors.statusCritical)),
             ),
         ],
       ),
@@ -375,16 +375,16 @@ class _EstimateCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Estimated feed remaining',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                const Text('Estimated feed remaining',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text(
                   data == null ? '--' : '${daysRemaining.toStringAsFixed(1)} days',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: textColor),
                 ),
-                Text(
+                const Text(
                   'Based on \${totalKg.toStringAsFixed(1)} kg at ~\${avgDailyKg.toStringAsFixed(0)} kg/day',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
             ),

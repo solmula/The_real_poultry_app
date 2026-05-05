@@ -107,9 +107,9 @@ class _ProductionScreenState extends State<ProductionScreen>
               pw.Container(
                 width: 32,
                 height: 24,
-                decoration: pw.BoxDecoration(
-                  color: const PdfColor.fromInt(0xFFE0F2F1),
-                  borderRadius: const pw.BorderRadius.all(
+                decoration: const pw.BoxDecoration(
+                  color: PdfColor.fromInt(0xFFE0F2F1),
+                  borderRadius: pw.BorderRadius.all(
                       pw.Radius.circular(6)),
                 ),
                 child: pw.Center(

@@ -186,13 +186,13 @@ class _ViewOnlyBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.statusOffline.withOpacity(0.3)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.lock_rounded, color: AppColors.statusOffline, size: 16),
-          const SizedBox(width: 8),
+          Icon(Icons.lock_rounded, color: AppColors.statusOffline, size: 16),
+          SizedBox(width: 8),
           Expanded(
             child: Text('View only — you do not have permission to send commands',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12,
                     color: AppColors.statusOffline,
                     fontWeight: FontWeight.w500)),
@@ -517,8 +517,8 @@ class _ClearAllButton extends StatelessWidget {
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (_) => AlertDialog(
-              title: Text('Clear All Overrides'),
-              content: Text('This will reset all override commands and return control to the ESP32 automatic system.'),
+              title: const Text('Clear All Overrides'),
+              content: const Text('This will reset all override commands and return control to the ESP32 automatic system.'),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(context, false),
@@ -527,7 +527,7 @@ class _ClearAllButton extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.statusCritical),
                   onPressed: () => Navigator.pop(context, true),
-                  child: Text('Clear All'),
+                  child: const Text('Clear All'),
                 ),
               ],
             ),
@@ -535,8 +535,8 @@ class _ClearAllButton extends StatelessWidget {
           if (confirmed == true) await cmd.clearCommands();
         },
         icon: const Icon(Icons.clear_all_rounded, color: AppColors.statusCritical),
-        label: Text('Clear All Overrides',
-            style: const TextStyle(
+        label: const Text('Clear All Overrides',
+            style: TextStyle(
                 color: AppColors.statusCritical, fontWeight: FontWeight.w600)),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),

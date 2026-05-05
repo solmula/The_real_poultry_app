@@ -7,6 +7,7 @@ import '../../../../data/providers/live_data_provider.dart';
 import '../../../../data/providers/language_provider.dart';
 import '../../../../data/models/threshold_model.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../user_management/user_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -68,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
     final bgColor   = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
@@ -80,8 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: cardColor,
         surfaceTintColor: Colors.transparent,
         title: Text(l10n.settings,
-            style: TextStyle(
-                color: textColor, fontWeight: FontWeight.w700)),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
         iconTheme: IconThemeData(color: textColor),
       ),
       body: Consumer3<AuthProvider, ThresholdProvider, LiveDataProvider>(
@@ -103,8 +103,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _LanguageCard(isDark: isDark),
                 const SizedBox(height: 24),
 
-                // ── Admin: Thresholds ─────────────────────────────────
+                // ── Admin-only section ────────────────────────────────
                 if (auth.isAdmin) ...[
+
+                  // User Management
+                  _SectionLabel(text: 'Administration', isDark: isDark),
+                  const SizedBox(height: 10),
+                  _NavigationTile(
+                    icon: Icons.manage_accounts_rounded,
+                    iconColor: AppColors.primary,
+                    title: 'User Management',
+                    subtitle: 'Invite, assign roles, disable users',
+                    isDark: isDark,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UserManagementScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Thresholds
                   _SectionLabel(text: l10n.thresholds, isDark: isDark),
                   const SizedBox(height: 10),
 
@@ -163,9 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _saving
-                          ? null
-                          : () => _saveThresholds(thresh),
+                      onPressed: _saving ? null : () => _saveThresholds(thresh),
                       icon: _saving
                           ? const SizedBox(
                               width: 16,
@@ -173,13 +191,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.save_rounded),
-                      label: Text(_saving
-                          ? 'Saving...'
-                          : l10n.save),
+                      label: Text(_saving ? 'Saving...' : l10n.save),
                     ),
                   ),
                   const SizedBox(height: 24),
 
+                  // Light Schedule
                   _SectionLabel(text: l10n.lightSchedule, isDark: isDark),
                   const SizedBox(height: 10),
                   _LightScheduleCard(
@@ -210,21 +227,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _saving = true);
     try {
       final updated = ThresholdModel(
-        tempFanLow:    double.parse(_tempFanLow.text),
-        tempFanHigh:   double.parse(_tempFanHigh.text),
-        tempFanOff:    double.parse(_tempFanOff.text),
-        tempHeatOn:    double.parse(_tempHeatOn.text),
-        tempHeatOff:   double.parse(_tempHeatOff.text),
-        nh3Warn:       double.parse(_nh3Warn.text),
-        nh3High:       double.parse(_nh3High.text),
-        nh3Critical:   double.parse(_nh3Critical.text),
-        co2High:       double.parse(_co2High.text),
-        rhHigh:        double.parse(_rhHigh.text),
-        waterPumpOn:   double.parse(_waterPumpOn.text),
-        waterPumpOff:  double.parse(_waterPumpOff.text),
-        lightOnHour:   thresh.thresholds.lightOnHour,
-        lightOnMinute: thresh.thresholds.lightOnMinute,
-        lightOffHour:  thresh.thresholds.lightOffHour,
+        tempFanLow:     double.parse(_tempFanLow.text),
+        tempFanHigh:    double.parse(_tempFanHigh.text),
+        tempFanOff:     double.parse(_tempFanOff.text),
+        tempHeatOn:     double.parse(_tempHeatOn.text),
+        tempHeatOff:    double.parse(_tempHeatOff.text),
+        nh3Warn:        double.parse(_nh3Warn.text),
+        nh3High:        double.parse(_nh3High.text),
+        nh3Critical:    double.parse(_nh3Critical.text),
+        co2High:        double.parse(_co2High.text),
+        rhHigh:         double.parse(_rhHigh.text),
+        waterPumpOn:    double.parse(_waterPumpOn.text),
+        waterPumpOff:   double.parse(_waterPumpOff.text),
+        lightOnHour:    thresh.thresholds.lightOnHour,
+        lightOnMinute:  thresh.thresholds.lightOnMinute,
+        lightOffHour:   thresh.thresholds.lightOffHour,
         lightOffMinute: thresh.thresholds.lightOffMinute,
       );
       await thresh.saveThresholds(updated);
@@ -251,21 +268,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveLightSchedule(ThresholdProvider thresh) async {
     try {
       final updated = ThresholdModel(
-        tempFanLow:    thresh.thresholds.tempFanLow,
-        tempFanHigh:   thresh.thresholds.tempFanHigh,
-        tempFanOff:    thresh.thresholds.tempFanOff,
-        tempHeatOn:    thresh.thresholds.tempHeatOn,
-        tempHeatOff:   thresh.thresholds.tempHeatOff,
-        nh3Warn:       thresh.thresholds.nh3Warn,
-        nh3High:       thresh.thresholds.nh3High,
-        nh3Critical:   thresh.thresholds.nh3Critical,
-        co2High:       thresh.thresholds.co2High,
-        rhHigh:        thresh.thresholds.rhHigh,
-        waterPumpOn:   thresh.thresholds.waterPumpOn,
-        waterPumpOff:  thresh.thresholds.waterPumpOff,
-        lightOnHour:   _lightOn.hour,
-        lightOnMinute: _lightOn.minute,
-        lightOffHour:  _lightOff.hour,
+        tempFanLow:     thresh.thresholds.tempFanLow,
+        tempFanHigh:    thresh.thresholds.tempFanHigh,
+        tempFanOff:     thresh.thresholds.tempFanOff,
+        tempHeatOn:     thresh.thresholds.tempHeatOn,
+        tempHeatOff:    thresh.thresholds.tempHeatOff,
+        nh3Warn:        thresh.thresholds.nh3Warn,
+        nh3High:        thresh.thresholds.nh3High,
+        nh3Critical:    thresh.thresholds.nh3Critical,
+        co2High:        thresh.thresholds.co2High,
+        rhHigh:         thresh.thresholds.rhHigh,
+        waterPumpOn:    thresh.thresholds.waterPumpOn,
+        waterPumpOff:   thresh.thresholds.waterPumpOff,
+        lightOnHour:    _lightOn.hour,
+        lightOnMinute:  _lightOn.minute,
+        lightOffHour:   _lightOff.hour,
         lightOffMinute: _lightOff.minute,
       );
       await thresh.saveThresholds(updated);
@@ -335,7 +352,6 @@ class _LanguageCard extends StatelessWidget {
               ],
             ),
           ),
-          // Toggle buttons
           Row(
             children: [
               _LangChip(
@@ -362,17 +378,14 @@ class _LangChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   const _LangChip(
-      {required this.label,
-      required this.selected,
-      required this.onTap});
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.primary
@@ -422,8 +435,7 @@ class _ProfileCard extends StatelessWidget {
             decoration: BoxDecoration(
                 color: roleColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(14)),
-            child:
-                Icon(Icons.person_rounded, color: roleColor, size: 28),
+            child: Icon(Icons.person_rounded, color: roleColor, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -440,8 +452,8 @@ class _ProfileCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                       color: roleColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(6)),
@@ -644,8 +656,7 @@ class _LightScheduleCard extends StatelessWidget {
               label: Text(l10n.save),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                side: BorderSide(
-                    color: AppColors.primary.withOpacity(0.4)),
+                side: BorderSide(color: AppColors.primary.withOpacity(0.4)),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
@@ -677,11 +688,9 @@ class _TimePicker extends StatelessWidget {
     return GestureDetector(
       onTap: () => onPick(time),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border:
-              Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -696,6 +705,83 @@ class _TimePicker extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Navigation Tile ───────────────────────────────────────────────────────────
+class _NavigationTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _NavigationTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textColor)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: AppColors.textSecondary.withOpacity(0.6)),
           ],
         ),
       ),
@@ -735,18 +821,15 @@ class _LogoutButton extends StatelessWidget {
           );
           if (confirmed == true) await auth.signOut();
         },
-        icon: const Icon(Icons.logout_rounded,
-            color: AppColors.statusCritical),
+        icon: const Icon(Icons.logout_rounded, color: AppColors.statusCritical),
         label: Text(l10n.logout,
             style: const TextStyle(
                 color: AppColors.statusCritical,
                 fontWeight: FontWeight.w600)),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(
-              color: AppColors.statusCritical.withOpacity(0.4)),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
+          side: BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

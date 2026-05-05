@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../data/providers/live_data_provider.dart';
 import '../../data/providers/alert_provider.dart';
 import '../../data/providers/threshold_provider.dart';
