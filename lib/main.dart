@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -9,6 +10,9 @@ import 'data/providers/auth_provider.dart';
 import 'data/providers/live_data_provider.dart';
 import 'data/providers/alert_provider.dart';
 import 'data/providers/threshold_provider.dart';
+import 'data/providers/production_provider.dart';
+import 'data/providers/notification_pref_provider.dart';
+import 'data/providers/theme_provider.dart';
 import 'data/providers/command_provider.dart';
 import 'data/providers/language_provider.dart';
 import 'data/services/notification_service.dart';
@@ -22,6 +26,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  FirebaseDatabase.instance.setPersistenceEnabled(true);
   NotificationService.navigatorKey = navigatorKey;
   await NotificationService.instance.initialize();
   runApp(const PoultryApp());
@@ -36,20 +41,23 @@ class PoultryApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LiveDataProvider()),
+        ChangeNotifierProvider(create: (_) => ProductionProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationPrefProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AlertProvider()),
         ChangeNotifierProvider(create: (_) => ThresholdProvider()),
         ChangeNotifierProvider(create: (_) => CommandProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
-      child: Consumer2<AuthProvider, LanguageProvider>(
-        builder: (context, auth, lang, _) {
+      child: Consumer3<AuthProvider, LanguageProvider, ThemeProvider>(
+        builder: (context, auth, lang, theme, _) {
           return MaterialApp(
             title: 'Poultry Automation',
             debugShowCheckedModeBanner: false,
             navigatorKey: navigatorKey,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.system,
+            themeMode: theme.themeMode,
             locale: lang.locale,
             localizationsDelegates: const [
               AppLocalizations.delegate,

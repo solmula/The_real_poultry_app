@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_utils.dart';
+import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/live_data_provider.dart';
 import '../../../data/providers/alert_provider.dart';
 import '../../../data/models/sensor_data.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../more/settings/settings_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToAlerts;
@@ -21,8 +23,8 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Consumer2<LiveDataProvider, AlertProvider>(
-          builder: (context, live, alerts, _) {
+        child: Consumer3<AuthProvider, LiveDataProvider, AlertProvider>(
+          builder: (context, auth, live, alerts, _) {
             final isFirstLoad = live.isLoading && live.data == null;
             final l10n = AppLocalizations.of(context);
 
@@ -33,7 +35,7 @@ class DashboardScreen extends StatelessWidget {
               },
               child: CustomScrollView(
                 slivers: [
-                  _buildAppBar(context, live, l10n),
+                  _buildAppBar(context, auth, live, l10n),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                     sliver: SliverList(
@@ -93,8 +95,8 @@ class DashboardScreen extends StatelessWidget {
   Widget _shimmerSectionLabel() =>
       const _ShimmerBox(height: 18, width: 100, borderRadius: 6);
 
-  Widget _buildAppBar(BuildContext context, LiveDataProvider live,
-      AppLocalizations l10n) {
+    Widget _buildAppBar(BuildContext context, AuthProvider auth,
+      LiveDataProvider live, AppLocalizations l10n) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return SliverAppBar(
       floating: true,
@@ -144,7 +146,17 @@ class DashboardScreen extends StatelessWidget {
               color: isDark ? AppColors.textLight : AppColors.textPrimary),
           onPressed: () => onNavigateToAlerts?.call(),
         ),
-        const SizedBox(width: 4),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            icon: _AccountAvatar(
+              email: auth.user?.email,
+              role: auth.role,
+            ),
+            onPressed: () => _showAccountSheet(context, auth),
+            tooltip: 'Account',
+          ),
+        ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
@@ -155,6 +167,121 @@ class DashboardScreen extends StatelessWidget {
               : Colors.black.withOpacity(0.06),
         ),
       ),
+    );
+  }
+
+  void _showAccountSheet(BuildContext context, AuthProvider auth) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final role = auth.role ?? 'operator';
+    final roleColor = role == 'admin'
+        ? AppColors.primary
+        : role == 'viewer'
+            ? AppColors.statusOffline
+            : AppColors.severityInfo;
+    final roleLabel = role == 'admin'
+        ? 'Admin'
+        : role == 'viewer'
+            ? 'Viewer'
+            : 'Operator';
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.person_rounded,
+                        color: AppColors.primary,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            auth.user?.email ?? 'Unknown',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: roleColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              roleLabel,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: roleColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _BottomSheetAction(
+                  icon: Icons.settings_rounded,
+                  label: 'Settings',
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 10),
+                _BottomSheetAction(
+                  icon: Icons.logout_rounded,
+                  label: 'Logout',
+                  isDestructive: true,
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    await auth.signOut();
+                  },
+                  isDark: isDark,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -776,6 +903,119 @@ class _LevelCard extends StatelessWidget {
                     fontSize: 10, color: AppColors.textSecondary)),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _AccountAvatar extends StatelessWidget {
+  final String? email;
+  final String? role;
+
+  const _AccountAvatar({this.email, this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final background = isDark ? AppColors.primaryLight : AppColors.primary;
+    final initials = _initialsFromEmail(email);
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: background.withOpacity(0.14),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: background.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: background,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _initialsFromEmail(String? value) {
+    if (value == null || value.isEmpty) return 'U';
+    final prefix = value.split('@').first;
+    final parts = prefix
+        .replaceAll(RegExp(r'[^a-zA-Z0-9]+'), ' ')
+        .trim()
+        .split(RegExp(r'\s+'));
+    if (parts.isEmpty) return prefix.substring(0, 1).toUpperCase();
+    if (parts.length == 1) {
+      final token = parts.first;
+      return token.length >= 2
+          ? token.substring(0, 2).toUpperCase()
+          : token.substring(0, 1).toUpperCase();
+    }
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+}
+
+class _BottomSheetAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDark;
+  final bool isDestructive;
+
+  const _BottomSheetAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.isDark,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDestructive
+        ? AppColors.statusCritical
+        : isDark
+            ? AppColors.textLight
+            : AppColors.textPrimary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: isDestructive
+                ? AppColors.statusCritical.withOpacity(0.08)
+                : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: textColor, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Icon(Icons.chevron_right_rounded, color: textColor, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }

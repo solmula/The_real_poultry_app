@@ -1,0 +1,13 @@
+{
+  "name": "poultry_automation-seeder",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Node.js seeder for Firestore sample data used by poultry_automation",
+  "main": "scripts/seed_data.js",
+  "scripts": {
+    "seed": "node scripts/seed_data.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

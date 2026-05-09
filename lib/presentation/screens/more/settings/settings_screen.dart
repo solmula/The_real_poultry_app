@@ -5,6 +5,8 @@ import '../../../../data/providers/auth_provider.dart';
 import '../../../../data/providers/threshold_provider.dart';
 import '../../../../data/providers/live_data_provider.dart';
 import '../../../../data/providers/language_provider.dart';
+import '../../../../data/providers/notification_pref_provider.dart';
+import '../../../../data/providers/theme_provider.dart';
 import '../../../../data/models/threshold_model.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../user_management/user_management_screen.dart';
@@ -84,8 +86,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
         iconTheme: IconThemeData(color: textColor),
       ),
-      body: Consumer3<AuthProvider, ThresholdProvider, LiveDataProvider>(
-        builder: (context, auth, thresh, live, _) {
+      body: Consumer4<AuthProvider, ThresholdProvider, LiveDataProvider, NotificationPrefProvider>(
+        builder: (context, auth, thresh, live, prefs, _) {
           _initControllers(thresh.thresholds);
           return Form(
             key: _formKey,
@@ -101,6 +103,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SectionLabel(text: l10n.language, isDark: isDark),
                 const SizedBox(height: 10),
                 _LanguageCard(isDark: isDark),
+                const SizedBox(height: 24),
+
+                // ── Appearance ───────────────────────────────────────
+                _SectionLabel(text: 'Appearance', isDark: isDark),
+                const SizedBox(height: 10),
+                _AppearanceCard(isDark: isDark),
+                const SizedBox(height: 24),
+
+                // ── Notification Preferences ────────────────────────
+                _SectionLabel(text: 'Notification Preferences', isDark: isDark),
+                const SizedBox(height: 10),
+                _NotificationPreferencesCard(
+                  isDark: isDark,
+                  prefs: prefs,
+                ),
                 const SizedBox(height: 24),
 
                 // ── Admin-only section ────────────────────────────────
@@ -498,6 +515,179 @@ class _FieldDef {
   const _FieldDef(this.label, this.controller, this.unit);
 }
 
+// ── Notification Preferences Card ────────────────────────────────────────────
+class _NotificationPreferencesCard extends StatelessWidget {
+  final bool isDark;
+  final NotificationPrefProvider prefs;
+
+  const _NotificationPreferencesCard({
+    required this.isDark,
+    required this.prefs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          _SeverityToggleRow(
+            label: 'Critical',
+            subtitle: 'Always enabled for safety alerts',
+            value: true,
+            locked: true,
+            onChanged: (_) async {},
+            isDark: isDark,
+            color: AppColors.statusCritical,
+          ),
+          const SizedBox(height: 8),
+          _SeverityToggleRow(
+            label: 'High',
+            subtitle: 'High-priority alerts and warnings',
+            value: prefs.high,
+            onChanged: prefs.setHigh,
+            isDark: isDark,
+            color: AppColors.statusWarning,
+          ),
+          const SizedBox(height: 8),
+          _SeverityToggleRow(
+            label: 'Warning',
+            subtitle: 'Medium priority system warnings',
+            value: prefs.warning,
+            onChanged: prefs.setWarning,
+            isDark: isDark,
+            color: AppColors.severityInfo,
+          ),
+          const SizedBox(height: 8),
+          _SeverityToggleRow(
+            label: 'Info',
+            subtitle: 'Informational notifications',
+            value: prefs.info,
+            onChanged: prefs.setInfo,
+            isDark: isDark,
+            color: AppColors.primary,
+          ),
+          if (prefs.isLoading) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(minHeight: 2),
+          ],
+          if (prefs.error != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                prefs.error!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.statusCritical,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Critical alerts cannot be disabled.',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeverityToggleRow extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final bool value;
+  final bool locked;
+  final Future<void> Function(bool) onChanged;
+  final bool isDark;
+  final Color color;
+
+  const _SeverityToggleRow({
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+    required this.isDark,
+    required this.color,
+    this.locked = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              locked ? Icons.lock_rounded : Icons.notifications_rounded,
+              color: color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: locked ? null : (next) => onChanged(next),
+            activeColor: color,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Threshold Card ────────────────────────────────────────────────────────────
 class _ThresholdCard extends StatelessWidget {
   final String title;
@@ -831,6 +1021,109 @@ class _LogoutButton extends StatelessWidget {
           side: BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
+      ),
+    );
+  }
+}
+
+class _AppearanceCard extends StatelessWidget {
+  final bool isDark;
+
+  const _AppearanceCard({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    final theme = context.watch<ThemeProvider>();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.palette_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Theme mode',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Choose how the app follows system appearance',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment<ThemeMode>(
+                value: ThemeMode.system,
+                label: Text('System'),
+                icon: Icon(Icons.settings_suggest_rounded),
+              ),
+              ButtonSegment<ThemeMode>(
+                value: ThemeMode.light,
+                label: Text('Light'),
+                icon: Icon(Icons.light_mode_rounded),
+              ),
+              ButtonSegment<ThemeMode>(
+                value: ThemeMode.dark,
+                label: Text('Dark'),
+                icon: Icon(Icons.dark_mode_rounded),
+              ),
+            ],
+            selected: {theme.themeMode},
+            onSelectionChanged: (selection) {
+              final selected = selection.first;
+              theme.setThemeMode(selected);
+            },
+            showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(
+              backgroundColor: AppColors.primary.withOpacity(0.06),
+              foregroundColor: AppColors.primary,
+              selectedBackgroundColor: AppColors.primary,
+              selectedForegroundColor: Colors.white,
+              side: BorderSide(color: AppColors.primary.withOpacity(0.18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

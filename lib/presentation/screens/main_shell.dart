@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:provider/provider.dart';
 import '../../data/providers/live_data_provider.dart';
 import '../../data/providers/alert_provider.dart';
@@ -22,12 +25,15 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   late int _currentIndex;
+  final Connectivity _connectivity = Connectivity();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   // In-app banner state
   String? _bannerTitle;
   String? _bannerBody;
   String? _bannerSeverity;
   bool _bannerVisible = false;
+  bool _offlineVisible = false;
 
   List<Widget> get _screens => [
     DashboardScreen(onNavigateToAlerts: () => setState(() => _currentIndex = 3)),
@@ -62,13 +68,38 @@ class _MainShellState extends State<MainShell> {
           if (mounted) setState(() => _bannerVisible = false);
         });
       };
+
+      _connectivitySubscription = _connectivity.onConnectivityChanged.listen((result) {
+        _updateOfflineState(result);
+      });
+      _connectivity.checkConnectivity().then(_updateOfflineState);
     });
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     NotificationService.onForegroundAlert = null;
     super.dispose();
+  }
+
+  void _updateOfflineState(dynamic result) {
+    if (!mounted) return;
+
+    final results = result is List<ConnectivityResult>
+        ? result
+        : result is ConnectivityResult
+            ? [result]
+            : const <ConnectivityResult>[];
+
+    final hasConnection = results.isNotEmpty &&
+        results.any((value) => value != ConnectivityResult.none);
+
+    if (_offlineVisible == !hasConnection) return;
+
+    setState(() {
+      _offlineVisible = !hasConnection;
+    });
   }
 
   @override
@@ -80,16 +111,28 @@ class _MainShellState extends State<MainShell> {
             index: _currentIndex,
             children: _screens,
           ),
+          if (_offlineVisible)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 12,
+              right: 12,
+              child: const _OfflineBanner(),
+            ),
           // In-app notification banner
           if (_bannerVisible)
             Positioned(
-              top: 0,
+              top: _offlineVisible
+                  ? MediaQuery.of(context).padding.top + 68
+                  : 0,
               left: 0,
               right: 0,
               child: _AlertBanner(
                 title: _bannerTitle ?? '',
                 body: _bannerBody ?? '',
                 severity: _bannerSeverity ?? 'INFO',
+                topPadding: _offlineVisible
+                    ? MediaQuery.of(context).padding.top + 68
+                    : MediaQuery.of(context).padding.top + 8,
                 onTap: () {
                   setState(() => _bannerVisible = false);
                   setState(() => _currentIndex = 3);
@@ -185,6 +228,7 @@ class _AlertBanner extends StatefulWidget {
   final String title;
   final String body;
   final String severity;
+  final double topPadding;
   final VoidCallback onTap;
   final VoidCallback onDismiss;
 
@@ -192,6 +236,7 @@ class _AlertBanner extends StatefulWidget {
     required this.title,
     required this.body,
     required this.severity,
+    required this.topPadding,
     required this.onTap,
     required this.onDismiss,
   });
@@ -248,15 +293,12 @@ class _AlertBannerState extends State<_AlertBanner>
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-
     return SlideTransition(
       position: _slide,
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          margin: EdgeInsets.only(
-              top: topPadding + 8, left: 12, right: 12),
+          margin: EdgeInsets.only(top: widget.topPadding, left: 12, right: 12),
           padding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
@@ -331,6 +373,44 @@ class _AlertBannerState extends State<_AlertBanner>
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC62828),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFC62828).withOpacity(0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, color: Colors.white, size: 22),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'No internet connection — showing last known data',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
