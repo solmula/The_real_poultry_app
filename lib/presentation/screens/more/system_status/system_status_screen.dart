@@ -31,6 +31,9 @@ class SystemStatusScreen extends StatelessWidget {
               if (live.isStale) _StaleBanner(lastUpdate: live.lastUpdateText),
               if (live.isStale) const SizedBox(height: 12),
 
+              _LiveSummaryCard(data: d, isDark: isDark),
+              const SizedBox(height: 24),
+
               _SectionLabel(text: 'ESP32 Nodes', isDark: isDark),
               const SizedBox(height: 10),
               _NodeCard(
@@ -56,9 +59,9 @@ class SystemStatusScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              _SectionLabel(text: 'Manure Belts', isDark: isDark),
+              _SectionLabel(text: 'Active Commands', isDark: isDark),
               const SizedBox(height: 10),
-              _ManureBeltsCard(data: d, isDark: isDark),
+              _ActiveCommandCard(data: d, isDark: isDark),
               const SizedBox(height: 24),
 
               _SectionLabel(text: 'System Info', isDark: isDark),
@@ -229,24 +232,28 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-class _ManureBeltsCard extends StatelessWidget {
+class _LiveSummaryCard extends StatelessWidget {
   final SensorData? data;
   final bool isDark;
-  const _ManureBeltsCard({required this.data, required this.isDark});
+  const _LiveSummaryCard({required this.data, required this.isDark});
 
-  String? _beltState(int house, int tier) {
-    if (data == null) return null;
-    final states = {
-      11: data!.h1T1ManureState,
-      12: data!.h1T2ManureState,
-      13: data!.h1T3ManureState,
-      14: data!.h1T4ManureState,
-      21: data!.h2T1ManureState,
-      22: data!.h2T2ManureState,
-      23: data!.h2T3ManureState,
-      24: data!.h2T4ManureState,
-    };
-    return states[house * 10 + tier];
+  Color _lightsColor() {
+    final lights = data?.lights;
+    if (lights == 'ON') return AppColors.statusGood;
+    if (lights == 'DIM') return AppColors.statusWarning;
+    return AppColors.textSecondary;
+  }
+
+  String _lightsLabel() {
+    return data?.lights ?? '--';
+  }
+
+  Color _heaterColor() {
+    return (data?.heater == true) ? AppColors.statusCritical : AppColors.textSecondary;
+  }
+
+  String _heaterLabel() {
+    return (data?.heater == true) ? 'ON' : 'OFF';
   }
 
   @override
@@ -254,44 +261,148 @@ class _ManureBeltsCard extends StatelessWidget {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
 
+    final tiles = [
+      {
+        'label': 'NH3',
+        'value': data?.nh3Max != null ? '${data!.nh3Max!.toStringAsFixed(1)} ppm' : '--',
+        'icon': Icons.air_outlined,
+      },
+      {
+        'label': 'Temperature',
+        'value': data?.tempAvg != null ? '${data!.tempAvg!.toStringAsFixed(1)} °C' : '--',
+        'icon': Icons.thermostat_rounded,
+      },
+      {
+        'label': 'Humidity',
+        'value': data?.rhAvg != null ? '${data!.rhAvg!.toStringAsFixed(1)} %RH' : '--',
+        'icon': Icons.water_drop_rounded,
+      },
+    ];
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (int house = 1; house <= 2; house++) ...[
-            Text('H$house Manure Belts',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
-            const SizedBox(height: 10),
-            Row(
-              children: List.generate(4, (i) {
-                final tier = i + 1;
-                final state = _beltState(house, tier);
-                final isFull = state == 'FULL';
-                final color = isFull ? AppColors.statusWarning : AppColors.statusGood;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: color.withOpacity(0.3)),
-                      ),
-                      child: Column(children: [
-                        Text('T$tier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-                        const SizedBox(height: 4),
-                        Text(state ?? '--', style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.w600)),
-                      ]),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            if (house == 1) const SizedBox(height: 14),
-          ],
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 1.0,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            children: [
+              for (final tile in tiles)
+                _StatusTile(
+                  label: tile['label'] as String,
+                  value: tile['value'] as String,
+                  icon: tile['icon'] as IconData,
+                  color: AppColors.primary,
+                  isDark: isDark,
+                ),
+              _StatusTile(
+                label: 'Lights',
+                value: _lightsLabel(),
+                icon: Icons.wb_incandescent_rounded,
+                color: _lightsColor(),
+                isDark: isDark,
+              ),
+              _StatusTile(
+                label: 'Heater',
+                value: _heaterLabel(),
+                icon: Icons.whatshot_rounded,
+                color: _heaterColor(),
+                isDark: isDark,
+              ),
+              _StatusTile(
+                label: 'Eggs Today',
+                value: '${data?.totalToday ?? 0}',
+                icon: Icons.egg_rounded,
+                color: AppColors.primary,
+                isDark: isDark,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+
+  const _StatusTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.15)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveCommandCard extends StatelessWidget {
+  final SensorData? data;
+  final bool isDark;
+  const _ActiveCommandCard({required this.data, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+
+    final lights = data?.lights ?? '--';
+    final fanSpeed = data?.fanSpeed ?? '--';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Lights', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              Text(lights, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Fan Speed', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              Text(fanSpeed, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+            ],
+          ),
         ],
       ),
     );

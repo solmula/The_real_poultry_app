@@ -62,7 +62,7 @@ class OverrideScreen extends StatelessWidget {
                 disabled: isViewer,
                 onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
                     label: 'Set heater to \$val?',
-                    heaterOverride: val == 'Auto' ? '' : val),
+                  heaterOverride: val == 'Auto' ? 'AUTO' : val.toUpperCase()),
               ),
               const SizedBox(height: 10),
 
@@ -76,7 +76,7 @@ class OverrideScreen extends StatelessWidget {
                 disabled: isViewer,
                 onSelect: (val) => _sendWithConfirm(context, cmd, l10n,
                     label: 'Set lights to \$val?',
-                    lightsOverride: val == 'Auto' ? '' : val),
+                  lightsOverride: val == 'Auto' ? 'AUTO' : val.toUpperCase()),
               ),
               const SizedBox(height: 20),
 
