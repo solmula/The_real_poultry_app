@@ -593,7 +593,7 @@ class _NotificationPreferencesCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 4),
-          Align(
+          const Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'Critical alerts cannot be disabled.',
@@ -680,7 +680,7 @@ class _SeverityToggleRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: locked ? null : (next) => onChanged(next),
-            activeColor: color,
+            activeThumbColor: color,
           ),
         ],
       ),

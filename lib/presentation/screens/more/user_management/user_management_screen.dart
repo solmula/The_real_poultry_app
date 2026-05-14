@@ -134,7 +134,7 @@ class _UserManagementView extends StatelessWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(err != null ? err : 'Role updated to ${_roleLabel(newRole)}'),
+          content: Text(err ?? 'Role updated to ${_roleLabel(newRole)}'),
           backgroundColor: err != null ? AppColors.statusCritical : AppColors.statusGood,
         ),
       );
@@ -172,7 +172,7 @@ class _UserManagementView extends StatelessWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(err != null ? err : 'User ${action.toLowerCase()}d'),
+          content: Text(err ?? 'User ${action.toLowerCase()}d'),
           backgroundColor: err != null ? AppColors.statusCritical : AppColors.statusGood,
         ),
       );
@@ -230,7 +230,7 @@ class _UserManagementView extends StatelessWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(err != null ? err : 'User removed'),
+          content: Text(err ?? 'User removed'),
           backgroundColor: err != null ? AppColors.statusCritical : AppColors.statusGood,
         ),
       );
@@ -432,7 +432,7 @@ class _UserCard extends StatelessWidget {
               ),
               if (!isCurrentUser)
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert_rounded, color: AppColors.textSecondary, size: 20),
+                  icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary, size: 20),
                   onSelected: (v) {
                     if (v == 'toggle') onToggleDisabled();
                     if (v == 'delete') onDelete();

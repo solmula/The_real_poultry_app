@@ -210,7 +210,7 @@ class DashboardScreen extends StatelessWidget {
                         color: AppColors.primary.withOpacity(0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.person_rounded,
                         color: AppColors.primary,
                         size: 30,

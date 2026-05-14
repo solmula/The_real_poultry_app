@@ -391,7 +391,7 @@ class _ActiveCommandCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Lights', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              const Text('Lights', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               Text(lights, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
             ],
           ),
@@ -399,7 +399,7 @@ class _ActiveCommandCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Fan Speed', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              const Text('Fan Speed', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               Text(fanSpeed, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
             ],
           ),
