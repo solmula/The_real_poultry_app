@@ -51,22 +51,16 @@ class AuthProvider extends ChangeNotifier {
         _role = doc.data()?['role']?.toString() ?? 'operator';
         _farmId = doc.data()?['farm_id']?.toString();
       } else {
-        await _firestore.collection('users').doc(uid).set({
-          'email': _auth.currentUser?.email,
-          'role': 'operator',
-          'farm_id': null,
-          'created_at': FieldValue.serverTimestamp(),
-          'last_login': FieldValue.serverTimestamp(),
-        });
-        _role = 'operator';
-        _farmId = null;
+        _errorMessage = 'Account not found. Contact your administrator.';
+        await signOut();
+        return;
       }
       await _firestore.collection('users').doc(uid).update({
         'last_login': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      _role = 'operator';
-      _farmId = null;
+      _errorMessage = 'Failed to verify account. Please try again.';
+      await signOut();
     }
   }
 

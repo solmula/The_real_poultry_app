@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ThresholdModel {
   final double tempFanLow;
   final double tempFanHigh;
@@ -9,8 +11,12 @@ class ThresholdModel {
   final double nh3Critical;
   final double co2High;
   final double rhHigh;
+  final double lightOnLux;
+  final double lightDimLux;
   final double waterPumpOn;
   final double waterPumpOff;
+  final double feedWarn;
+  final double feedCritical;
   final int lightOnHour;
   final int lightOnMinute;
   final int lightOffHour;
@@ -27,8 +33,12 @@ class ThresholdModel {
     this.nh3Critical = 35.0,
     this.co2High = 3000.0,
     this.rhHigh = 72.0,
+    this.lightOnLux = 10.0,
+    this.lightDimLux = 20.0,
     this.waterPumpOn = 30.0,
     this.waterPumpOff = 70.0,
+    this.feedWarn = 15.0,
+    this.feedCritical = 8.0,
     this.lightOnHour = 5,
     this.lightOnMinute = 0,
     this.lightOffHour = 21,
@@ -47,8 +57,12 @@ class ThresholdModel {
       nh3Critical: _toDouble(json['nh3_critical']) ?? 35.0,
       co2High: _toDouble(json['co2_high']) ?? 3000.0,
       rhHigh: _toDouble(json['rh_high']) ?? 72.0,
+      lightOnLux: _toDouble(json['light_on_lux']) ?? 10.0,
+      lightDimLux: _toDouble(json['light_dim_lux']) ?? 20.0,
       waterPumpOn: _toDouble(json['water_pump_on']) ?? 30.0,
       waterPumpOff: _toDouble(json['water_pump_off']) ?? 70.0,
+      feedWarn: _toDouble(json['feed_warn']) ?? 15.0,
+      feedCritical: _toDouble(json['feed_critical']) ?? 8.0,
       lightOnHour: _toInt(json['light_on_hour']) ?? 5,
       lightOnMinute: _toInt(json['light_on_minute']) ?? 0,
       lightOffHour: _toInt(json['light_off_hour']) ?? 21,
@@ -67,8 +81,12 @@ class ThresholdModel {
     'nh3_critical': nh3Critical,
     'co2_high': co2High,
     'rh_high': rhHigh,
+    'light_on_lux': lightOnLux,
+    'light_dim_lux': lightDimLux,
     'water_pump_on': waterPumpOn,
     'water_pump_off': waterPumpOff,
+    'feed_warn': feedWarn,
+    'feed_critical': feedCritical,
     'light_on_hour': lightOnHour,
     'light_on_minute': lightOnMinute,
     'light_off_hour': lightOffHour,

@@ -13,12 +13,16 @@ class ProductionProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   ProductionEggData? _todayEggs;
+  double? _todayH1FeedKg;
+  double? _todayH2FeedKg;
   List<DailyReport> _historyReports = [];
   FlockConfig? _flockConfig;
   bool _isLoadingToday = true;
   bool _isLoadingHistory = true;
   String? _error;
   StreamSubscription<DatabaseEvent>? _todaySubscription;
+  StreamSubscription<DatabaseEvent>? _h1Subscription;
+  StreamSubscription<DatabaseEvent>? _h2Subscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _historySubscription;
 
@@ -36,7 +40,13 @@ class ProductionProvider extends ChangeNotifier {
   DailyReport? get latestReport =>
       _historyReports.isNotEmpty ? _historyReports.first : null;
 
-  int? get todayTotalEggs => _todayEggs?.totalToday ?? latestReport?.totalEggs;
+  String _todayDateString() {
+    return DateTime.now().toIso8601String().split('T')[0];
+  }
+
+  bool get _latestReportIsToday => latestReport != null && latestReport!.date == _todayDateString();
+
+  int? get todayTotalEggs => _latestReportIsToday ? latestReport?.totalEggs : _todayEggs?.totalToday ?? latestReport?.totalEggs;
 
   FlockConfig? get flockConfig => _flockConfig;
   int? get activeBirdCount => _flockConfig?.effectiveBirdCount;
@@ -57,6 +67,8 @@ class ProductionProvider extends ChangeNotifier {
   }
 
   double? get todayLayingRate {
+    if (_latestReportIsToday) return latestReport?.layingRatePct;
+
     final eggCount = _todayEggs?.totalToday;
     if (eggCount == null || eggCount <= 0) return null;
 
@@ -68,7 +80,11 @@ class ProductionProvider extends ChangeNotifier {
     return (eggCount / birdCount) * 100.0;
   }
 
-  double? get todayFeedConsumedKg => latestReport?.feedConsumedKg;
+  double? get todayFeedConsumedKg {
+    if (_latestReportIsToday) return latestReport?.feedConsumedKg;
+    if (_todayH1FeedKg == null && _todayH2FeedKg == null) return null;
+    return (_todayH1FeedKg ?? 0.0) + (_todayH2FeedKg ?? 0.0);
+  }
 
   double? get todayFcr {
     final report = latestReport;
@@ -114,6 +130,44 @@ class ProductionProvider extends ChangeNotifier {
         notifyListeners();
       },
     );
+
+    _h1Subscription?.cancel();
+    _h1Subscription = _db.ref(FirebasePaths.h1).onValue.listen((event) {
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        try {
+          final json = event.snapshot.value as Map<dynamic, dynamic>;
+          final v = json['feed_kg'];
+          _todayH1FeedKg = v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '0');
+        } catch (e) {
+          _todayH1FeedKg = null;
+        }
+      } else {
+        _todayH1FeedKg = null;
+      }
+      notifyListeners();
+    }, onError: (err) {
+      _error = 'Failed to load H1 feed data';
+      notifyListeners();
+    });
+
+    _h2Subscription?.cancel();
+    _h2Subscription = _db.ref(FirebasePaths.h2).onValue.listen((event) {
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        try {
+          final json = event.snapshot.value as Map<dynamic, dynamic>;
+          final v = json['feed_kg'];
+          _todayH2FeedKg = v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '0');
+        } catch (e) {
+          _todayH2FeedKg = null;
+        }
+      } else {
+        _todayH2FeedKg = null;
+      }
+      notifyListeners();
+    }, onError: (err) {
+      _error = 'Failed to load H2 feed data';
+      notifyListeners();
+    });
 
     _historySubscription?.cancel();
     _historySubscription = _firestore
@@ -164,6 +218,8 @@ class ProductionProvider extends ChangeNotifier {
   void stopListening() {
     _todaySubscription?.cancel();
     _historySubscription?.cancel();
+    _h1Subscription?.cancel();
+    _h2Subscription?.cancel();
     _todaySubscription = null;
     _historySubscription = null;
   }

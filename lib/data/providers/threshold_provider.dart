@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import '../models/threshold_model.dart';
 import '../../core/constants/firebase_paths.dart';
 
@@ -26,12 +25,7 @@ class ThresholdProvider extends ChangeNotifier {
 
   Future<void> saveThresholds(ThresholdModel updated) async {
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'us-central1').httpsCallable('updateThresholds');
-      final res = await callable.call(updated.toJson());
-      final data = res.data as Map<String, dynamic>?;
-      if (data == null || data['success'] != true) throw StateError('Failed to update thresholds');
-    } on FirebaseFunctionsException {
-      rethrow;
+      await _db.ref(FirebasePaths.thresholds).set(updated.toJson());
     } catch (e) {
       rethrow;
     }

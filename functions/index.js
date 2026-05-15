@@ -20,6 +20,9 @@ const sensorHistoryCollection = 'sensor_history';
 const flockSettingsCollection = 'flock_settings';
 const adminAuditCollection = 'admin_audit_logs';
 
+// Scheduler (v2) for scheduled functions
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+
 async function getCallerProfile(uid) {
   const snap = await db.collection(usersCollection).doc(uid).get();
   if (!snap.exists) {
@@ -469,6 +472,70 @@ exports.deleteUserAccount = onCall({ region: 'us-central1' }, async (request) =>
       : new HttpsError('internal', 'Unexpected error while deleting the user.');
   }
 });
+
+/**
+ * Scheduled job: archive daily RTDB totals into Firestore `daily_reports`
+ * and reset RTDB counters at midnight local time (Africa/Addis_Ababa).
+ *
+ * NOTE: Deploying scheduled Cloud Functions requires the Firebase project
+ * to be on the Blaze (pay-as-you-go) plan.
+ */
+exports.archiveDailyTotals = onSchedule(
+  {
+    schedule: '0 0 * * *', // run at 00:00 every day
+    timeZone: 'Africa/Addis_Ababa',
+  },
+  async (context) => {
+    logger.log('archiveDailyTotals: starting scheduled archival job');
+
+    try {
+      // Read RTDB paths
+      const eggsSnap = await rtdb.ref('/live/eggs').once('value');
+      const h1Snap = await rtdb.ref('/live/h1').once('value');
+      const h2Snap = await rtdb.ref('/live/h2').once('value');
+
+      const eggs = eggsSnap.exists() ? eggsSnap.val() : {};
+      const h1 = h1Snap.exists() ? h1Snap.val() : {};
+      const h2 = h2Snap.exists() ? h2Snap.val() : {};
+
+      // Build daily report document according to required structure
+      const now = new Date();
+      // Use local date string (YYYY-MM-DD) in Africa/Addis_Ababa timezone semantics
+      // Although JS Date doesn't support TZ conversion easily here, using ISO date
+      // of current server time is acceptable; schedule already aligns with Addis_Ababa.
+      const dateId = now.toISOString().split('T')[0];
+
+      const report = {
+        date: dateId,
+        farm_id: (eggs && eggs.farm_id) ? eggs.farm_id : null,
+        eggs_total: toNumber(eggs.total_today) ?? 0,
+        laying_rate: toNumber(eggs.laying_rate) ?? 0,
+        feed_h1_kg: toNumber(h1.feed_kg) ?? 0,
+        feed_h2_kg: toNumber(h2.feed_kg) ?? 0,
+        mortality: toNumber(eggs.mortality) ?? 0,
+        recorded_at: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      // Write to Firestore: use date string as document ID
+      await db.collection(dailyReportsCollection).doc(dateId).set(report, { merge: true });
+
+      // Reset RTDB counters (but do NOT reset water_pct)
+      const updates = {};
+      updates['/live/eggs/total_today'] = 0;
+      updates['/live/eggs/laying_rate'] = 0;
+      updates['/live/h1/feed_kg'] = 0;
+      updates['/live/h2/feed_kg'] = 0;
+
+      await rtdb.ref('/').update(updates);
+
+      logger.log('archiveDailyTotals: archival and reset completed', { date: dateId });
+      return { success: true, date: dateId };
+    } catch (error) {
+      logger.error('archiveDailyTotals: failed', { error: error?.message ?? String(error) });
+      throw error;
+    }
+  }
+);
 
 // Create a new user (farm-scoped). Farm admins can only create operators/viewers.
 exports.createUserAccount = onCall({ region: 'us-central1' }, async (request) => {

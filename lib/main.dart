@@ -17,6 +17,7 @@ import 'data/providers/theme_provider.dart';
 import 'data/providers/command_provider.dart';
 import 'data/providers/language_provider.dart';
 import 'data/providers/flock_config_provider.dart';
+import 'data/providers/user_management_provider.dart';
 import 'data/services/notification_service.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main_shell.dart';
@@ -55,6 +56,7 @@ class PoultryApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationPrefProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AlertProvider()),
+        ChangeNotifierProvider(create: (_) => UserManagementProvider()),
         ChangeNotifierProvider(create: (_) => ThresholdProvider()),
         ChangeNotifierProvider(create: (_) => CommandProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),

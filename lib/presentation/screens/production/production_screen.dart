@@ -321,7 +321,13 @@ class _HistoryTab extends StatelessWidget {
           child: CircularProgressIndicator(color: AppColors.primary));
     }
 
-    final reports = production.historyReports.reversed.toList();
+    // Exclude today's report from history display/chart to avoid duplication
+    final todayDate = DateTime.now().toIso8601String().split('T')[0];
+    final reports = production.historyReports
+      .where((r) => r.date != todayDate)
+      .toList()
+      .reversed
+      .toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
