@@ -11,16 +11,19 @@ class AuthProvider extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unknown;
   User? _user;
   String? _role;
+  String? _farmId;
   String? _errorMessage;
   bool _isLoading = false;
 
   AuthStatus get status => _status;
   User? get user => _user;
   String? get role => _role;
+  String? get farmId => _farmId;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
-  bool get isAdmin => _role == 'admin';
-  bool get isOperator => _role == 'operator' || _role == 'admin';
+  bool get isSuperAdmin => _role == 'super_admin';
+  bool get isAdmin => _role == 'admin' || _role == 'super_admin';
+  bool get isOperator => _role == 'operator' || _role == 'admin' || _role == 'super_admin';
   bool get isViewer => _role == 'viewer';
 
   AuthProvider() {
@@ -31,6 +34,7 @@ class AuthProvider extends ChangeNotifier {
     if (user == null) {
       _user = null;
       _role = null;
+      _farmId = null;
       _status = AuthStatus.unauthenticated;
     } else {
       _user = user;
@@ -45,20 +49,24 @@ class AuthProvider extends ChangeNotifier {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         _role = doc.data()?['role']?.toString() ?? 'operator';
+        _farmId = doc.data()?['farm_id']?.toString();
       } else {
         await _firestore.collection('users').doc(uid).set({
           'email': _auth.currentUser?.email,
           'role': 'operator',
+          'farm_id': null,
           'created_at': FieldValue.serverTimestamp(),
           'last_login': FieldValue.serverTimestamp(),
         });
         _role = 'operator';
+        _farmId = null;
       }
       await _firestore.collection('users').doc(uid).update({
         'last_login': FieldValue.serverTimestamp(),
       });
     } catch (e) {
       _role = 'operator';
+      _farmId = null;
     }
   }
 

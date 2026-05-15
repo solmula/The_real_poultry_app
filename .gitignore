@@ -46,11 +46,35 @@ app.*.map.json
 PROJECT_CONTEXT.md
 lib/l10n/app_localizations*.dart
 
-scripts/serviceAccount.json
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SECURITY: Never commit Firebase admin credentials or environment files
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Firebase Admin SDK credentials (service accounts, private keys)
+scripts/*.json
+**/*serviceAccount*.json
+**/*firebase-admin*.json
+**/*gcp-key*.json
+**/*google-*.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# API keys and secrets
+.secrets
+**/*.key
+**/*.pem
+**/*.p12
+
+# Node dependencies and package locks
 scripts/node_modules/
 package-lock.json
-
 node_modules/
+
+# Build and tool artifacts
 build/
 .dart_tool/
 .flutter-plugins

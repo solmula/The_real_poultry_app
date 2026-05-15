@@ -5,23 +5,26 @@ import 'package:firebase_admin_sdk/firebase_admin_sdk.dart' as admin;
 import 'package:google_cloud_firestore/google_cloud_firestore.dart';
 
 const String _defaultProjectId = 'poultry-automation-93ae1';
+const int _initialBirdCount = int.fromEnvironment('FLOCK_INITIAL_BIRDS', defaultValue: 0);
 
 Future<void> main(List<String> arguments) async {
   final config = _SeedConfig.parse(arguments);
   final projectId = config.projectId ?? Platform.environment['FIREBASE_PROJECT_ID'] ?? _defaultProjectId;
 
   if (projectId.isEmpty) {
-    stderr.writeln('Missing Firebase project id. Set --project-id or update firebase_options.dart.');
+    stderr.writeln('Missing Firebase project id. Set FIREBASE_PROJECT_ID environment variable or update the _defaultProjectId constant.');
     exitCode = 1;
     return;
   }
 
-  final credential = await _resolveCredential(config);
+  final credential = await _resolveCredential(const _SeedConfig());
   if (credential == null) {
-    stderr.writeln(
-      'No Firebase credential found. Set GOOGLE_APPLICATION_CREDENTIALS, '
-      'pass --service-account <path>, or authenticate with application default credentials.',
-    );
+    stderr.writeln('\n✖ Failed to initialize Firebase Admin SDK');
+    stderr.writeln('\nEnsure one of the following:');
+    stderr.writeln('  1. GOOGLE_APPLICATION_CREDENTIALS env var points to a valid service account JSON file');
+    stderr.writeln('  2. Run: gcloud auth application-default login');
+    stderr.writeln('  3. Set up a .env file and source it before running this script');
+    stderr.writeln('\nSee .env.example for detailed setup instructions.\n');
     exitCode = 1;
     return;
   }
@@ -42,23 +45,39 @@ Future<void> main(List<String> arguments) async {
     stdout.writeln('Seeded Firestore collections daily_reports and sensor_history for project $projectId.');
   } catch (error) {
     stderr.writeln('Failed to seed Firestore: $error');
-    stderr.writeln('Provide a service-account file with --service-account or set GOOGLE_APPLICATION_CREDENTIALS.');
+    stderr.writeln('Check credentials and permissions. See .env.example for setup details.');
     exitCode = 1;
   }
 }
 
 Future<admin.Credential?> _resolveCredential(_SeedConfig config) async {
-  final serviceAccountPath = config.serviceAccountPath ?? Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SECURITY: Credentials from environment only — never from hardcoded paths
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Checks GOOGLE_APPLICATION_CREDENTIALS env var first, then falls back to
+  // application default credentials (gcloud auth application-default login)
+
+  final serviceAccountPath = Platform.environment['GOOGLE_APPLICATION_CREDENTIALS'];
   if (serviceAccountPath != null && serviceAccountPath.trim().isNotEmpty) {
     final file = File(serviceAccountPath.trim());
     if (await file.exists()) {
-      return admin.Credential.fromServiceAccount(file);
+      try {
+        return admin.Credential.fromServiceAccount(file);
+      } catch (e) {
+        stderr.writeln('Error reading service account from $serviceAccountPath: $e');
+        return null;
+      }
+    } else {
+      stderr.writeln('Service account file not found at: $serviceAccountPath');
+      return null;
     }
   }
 
+  // Fallback to application default credentials
   try {
     return admin.Credential.fromApplicationDefaultCredentials();
-  } catch (_) {
+  } catch (e) {
+    stderr.writeln('Application default credentials not available: $e');
     return null;
   }
 }
@@ -132,32 +151,23 @@ String _formatDate(DateTime date) {
 }
 
 class _SeedConfig {
-  final String? serviceAccountPath;
   final String? projectId;
 
-  const _SeedConfig({this.serviceAccountPath, this.projectId});
+  const _SeedConfig({this.projectId});
 
   factory _SeedConfig.parse(List<String> args) {
-    String? serviceAccountPath;
     String? projectId;
 
     for (var index = 0; index < args.length; index++) {
       final arg = args[index];
-      if (arg.startsWith('--service-account=')) {
-        serviceAccountPath = arg.split('=').sublist(1).join('=');
-      } else if (arg == '--service-account' && index + 1 < args.length) {
-        serviceAccountPath = args[++index];
-      } else if (arg.startsWith('--project-id=')) {
+      if (arg.startsWith('--project-id=')) {
         projectId = arg.split('=').sublist(1).join('=');
       } else if (arg == '--project-id' && index + 1 < args.length) {
         projectId = args[++index];
       }
     }
 
-    return _SeedConfig(
-      serviceAccountPath: serviceAccountPath,
-      projectId: projectId,
-    );
+    return _SeedConfig(projectId: projectId);
   }
 }
 

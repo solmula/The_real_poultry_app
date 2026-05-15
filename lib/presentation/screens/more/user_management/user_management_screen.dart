@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/providers/auth_provider.dart';
+import '../../../../data/providers/farm_provider.dart';
 import '../../../../data/providers/user_management_provider.dart';
 import '../../../../data/models/user_model.dart';
+import '../../../../data/models/farm_model.dart';
 
 class UserManagementScreen extends StatelessWidget {
   const UserManagementScreen({super.key});
@@ -28,6 +30,7 @@ class _UserManagementView extends StatelessWidget {
     final textColor = isDark ? AppColors.textLight      : AppColors.textPrimary;
     final provider  = context.watch<UserManagementProvider>();
     final auth      = context.read<AuthProvider>();
+    final farms     = context.watch<FarmProvider>().farms;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -62,9 +65,15 @@ class _UserManagementView extends StatelessWidget {
             ),
           IconButton(
             icon: const Icon(Icons.person_add_rounded, color: AppColors.primary),
-            onPressed: () => _showInviteDialog(context, auth),
+            onPressed: () => _showInviteDialog(context, auth, farms),
             tooltip: 'Invite user',
           ),
+          if (auth.isSuperAdmin)
+            IconButton(
+              icon: const Icon(Icons.domain_add_rounded, color: AppColors.primary),
+              onPressed: () => _showFarmOnboardingDialog(context),
+              tooltip: 'Create farm admin',
+            ),
         ],
       ),
       body: provider.isLoading
@@ -237,21 +246,27 @@ class _UserManagementView extends StatelessWidget {
     }
   }
 
-  void _showInviteDialog(BuildContext context, AuthProvider auth) {
+  void _showInviteDialog(BuildContext context, AuthProvider auth, List<FarmModel> farms) {
     showDialog(
       context: context,
       builder: (ctx) => _InviteDialog(
         auth: auth,
-        onInvite: (email, password, role, adminPassword) async {
+        farms: farms,
+        onInvite: (email, role, farmId) async {
           return await ctx.read<UserManagementProvider>().inviteUser(
                 email: email,
-                password: password,
                 role: role,
-                adminEmail: auth.user?.email ?? '',
-                adminPassword: adminPassword,
+                farmId: farmId,
               );
         },
       ),
+    );
+  }
+
+  void _showFarmOnboardingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => const _FarmOnboardingDialog(),
     );
   }
 
@@ -556,8 +571,9 @@ class _RoleChip extends StatelessWidget {
 // ── Invite Dialog ─────────────────────────────────────────────────────────────
 class _InviteDialog extends StatefulWidget {
   final AuthProvider auth;
-  final Future<String?> Function(String email, String password, String role, String adminPassword) onInvite;
-  const _InviteDialog({required this.auth, required this.onInvite});
+  final List<FarmModel> farms;
+  final Future<String?> Function(String email, String role, String? farmId) onInvite;
+  const _InviteDialog({required this.auth, required this.farms, required this.onInvite});
 
   @override
   State<_InviteDialog> createState() => _InviteDialogState();
@@ -566,24 +582,18 @@ class _InviteDialog extends StatefulWidget {
 class _InviteDialogState extends State<_InviteDialog> {
   final _formKey       = GlobalKey<FormState>();
   final _emailCtrl     = TextEditingController();
-  final _passwordCtrl  = TextEditingController();
-  final _adminPassCtrl = TextEditingController();
   String _role = 'operator';
-  bool _showPassword  = false;
-  bool _showAdminPass = false;
   bool _loading = false;
   String? _error;
+  String? _selectedFarmId;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _passwordCtrl.dispose();
-    _adminPassCtrl.dispose();
     super.dispose();
   }
 
   static const Map<String, String> _roleDescriptions = {
-    'admin':    'Full access: view, control, thresholds, user management.',
     'operator': 'Can view all data and send manual commands. Cannot edit thresholds.',
     'viewer':   'Read-only access. Cannot send commands or edit anything.',
   };
@@ -596,6 +606,10 @@ class _InviteDialogState extends State<_InviteDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.auth.isSuperAdmin && _selectedFarmId == null && widget.farms.isNotEmpty) {
+      _selectedFarmId = widget.farms.first.id;
+    }
+
     final roleColor = _roleColors[_role] ?? AppColors.primary;
 
     return Dialog(
@@ -638,28 +652,10 @@ class _InviteDialogState extends State<_InviteDialog> {
                 },
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordCtrl,
-                obscureText: !_showPassword,
-                decoration: InputDecoration(
-                  labelText: 'Temporary Password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
-                  suffixIcon: IconButton(
-                    icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
-                    onPressed: () => setState(() => _showPassword = !_showPassword),
-                  ),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Password is required';
-                  if (v.length < 6) return 'Minimum 6 characters';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
               const Text('Role', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
               const SizedBox(height: 8),
               Row(
-                children: ['admin', 'operator', 'viewer'].map((r) {
+                children: ['operator', 'viewer'].map((r) {
                   final selected = _role == r;
                   final color = _roleColors[r]!;
                   return Expanded(
@@ -685,6 +681,23 @@ class _InviteDialogState extends State<_InviteDialog> {
                   );
                 }).toList(),
               ),
+              if (widget.auth.isSuperAdmin) ...[
+                const SizedBox(height: 16),
+                const Text('Farm', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedFarmId,
+                  items: widget.farms
+                      .map((farm) => DropdownMenuItem(
+                            value: farm.id,
+                            child: Text('${farm.name} (${farm.subscriptionPlan})'),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => _selectedFarmId = value),
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.domain_rounded, size: 18)),
+                  validator: (value) => value == null || value.isEmpty ? 'Select a farm' : null,
+                ),
+              ],
               const SizedBox(height: 10),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -700,28 +713,6 @@ class _InviteDialogState extends State<_InviteDialog> {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 8),
-              const Text('Your Password (required to restore your session)',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _adminPassCtrl,
-                obscureText: !_showAdminPass,
-                decoration: InputDecoration(
-                  labelText: 'Your Password',
-                  prefixIcon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-                  suffixIcon: IconButton(
-                    icon: Icon(_showAdminPass ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
-                    onPressed: () => setState(() => _showAdminPass = !_showAdminPass),
-                  ),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Your password is required';
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
               if (_error != null)
@@ -767,9 +758,8 @@ class _InviteDialogState extends State<_InviteDialog> {
 
     final err = await widget.onInvite(
       _emailCtrl.text.trim(),
-      _passwordCtrl.text.trim(),
       _role,
-      _adminPassCtrl.text.trim(),
+      widget.auth.isSuperAdmin ? _selectedFarmId : widget.auth.farmId,
     );
 
     if (!mounted) return;
@@ -779,6 +769,127 @@ class _InviteDialogState extends State<_InviteDialog> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User created successfully'), backgroundColor: AppColors.statusGood),
+      );
+    }
+  }
+}
+
+class _FarmOnboardingDialog extends StatefulWidget {
+  const _FarmOnboardingDialog();
+
+  @override
+  State<_FarmOnboardingDialog> createState() => _FarmOnboardingDialogState();
+}
+
+class _FarmOnboardingDialogState extends State<_FarmOnboardingDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _farmNameCtrl = TextEditingController();
+  final _adminEmailCtrl = TextEditingController();
+  final _planCtrl = TextEditingController(text: 'starter');
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _farmNameCtrl.dispose();
+    _adminEmailCtrl.dispose();
+    _planCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.all(20),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Create Farm Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const Text('Super admins create a new farm and its first admin.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _farmNameCtrl,
+                decoration: const InputDecoration(labelText: 'Farm Name', prefixIcon: Icon(Icons.domain_rounded, size: 18)),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Farm name is required' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _adminEmailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Admin Email', prefixIcon: Icon(Icons.email_outlined, size: 18)),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Admin email is required';
+                  if (!v.contains('@')) return 'Enter a valid email';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _planCtrl,
+                decoration: const InputDecoration(labelText: 'Subscription Plan', prefixIcon: Icon(Icons.workspace_premium_outlined, size: 18)),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Plan is required' : null,
+              ),
+              const SizedBox(height: 16),
+              if (_error != null)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.statusCritical.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(_error!, style: const TextStyle(fontSize: 12, color: AppColors.statusCritical)),
+                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _loading ? null : () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _submit,
+                      child: _loading
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Create Farm'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+
+    final err = await context.read<UserManagementProvider>().createFarmAdmin(
+      farmName: _farmNameCtrl.text.trim(),
+      adminEmail: _adminEmailCtrl.text.trim(),
+      subscriptionPlan: _planCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    if (err != null) {
+      setState(() { _loading = false; _error = err; });
+    } else {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Farm admin created'), backgroundColor: AppColors.statusGood),
       );
     }
   }

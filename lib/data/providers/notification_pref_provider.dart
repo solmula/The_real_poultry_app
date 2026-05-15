@@ -68,6 +68,7 @@ class NotificationPrefProvider extends ChangeNotifier {
     try {
       final docRef = _firestore.collection('users').doc(uid);
       final doc = await docRef.get();
+      final farmId = doc.data()?['farm_id']?.toString();
 
       final rawPrefs = doc.data()?['notification_prefs'];
       final prefs = rawPrefs is Map ? rawPrefs : const <String, dynamic>{};
@@ -79,6 +80,7 @@ class NotificationPrefProvider extends ChangeNotifier {
 
       await docRef.set(
         {
+          if (farmId != null) 'farm_id': farmId,
           'notification_prefs': {
             'CRITICAL': true,
             'HIGH': _high,
@@ -112,8 +114,10 @@ class NotificationPrefProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final farmId = (await _firestore.collection('users').doc(uid).get()).data()?['farm_id']?.toString();
       await _firestore.collection('users').doc(uid).set(
         {
+          if (farmId != null) 'farm_id': farmId,
           'notification_prefs': {
             'CRITICAL': true,
             'HIGH': _high,

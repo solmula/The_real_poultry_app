@@ -1,11 +1,46 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccount.json');
 
-const PROJECT_ID = serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || 'poultry-automation-93ae1';
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SECURITY: Credentials loaded from environment only — never from committed files
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Expected credentials path via GOOGLE_APPLICATION_CREDENTIALS environment variable
+// or via application default credentials (gcloud auth application-default login)
+// See .env.example for setup instructions.
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'poultry-automation-93ae1';
+const INITIAL_BIRD_COUNT = Number(process.env.FLOCK_INITIAL_BIRDS);
+
+if (!PROJECT_ID) {
+  console.error('Error: FIREBASE_PROJECT_ID environment variable is not set.');
+  console.error('Set GOOGLE_APPLICATION_CREDENTIALS or run: gcloud auth application-default login');
+  process.exitCode = 1;
+  process.exit(1);
+}
+
+if (!Number.isFinite(INITIAL_BIRD_COUNT) || INITIAL_BIRD_COUNT <= 0) {
+  console.error('Error: FLOCK_INITIAL_BIRDS must be set to a positive number.');
+  process.exitCode = 1;
+  process.exit(1);
+}
+
+let credentialError = null;
+try {
+  // Attempt to initialize with credentials from environment
+  admin.initializeApp();
+} catch (error) {
+  credentialError = error;
+}
+
+if (credentialError) {
+  console.error('\n❌ Failed to initialize Firebase Admin SDK');
+  console.error('\nEnsure one of the following:');
+  console.error('  1. GOOGLE_APPLICATION_CREDENTIALS env var points to a valid service account JSON');
+  console.error('  2. Run: gcloud auth application-default login');
+  console.error('  3. Set up a .env file with GOOGLE_APPLICATION_CREDENTIALS');
+  console.error('\nSee .env.example for more details.\n');
+  process.exitCode = 1;
+  process.exit(1);
+}
 
 const db = admin.firestore();
 
@@ -30,10 +65,11 @@ function dailyReportForDay(offsetDays) {
   const today = new Date();
   const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offsetDays);
   const progress = offsetDays / 6;
-  const totalEggs = Math.round(1160 + progress * 60 + Math.sin(offsetDays) * 12);
+  const baselineEggs = INITIAL_BIRD_COUNT + Math.round(progress * (INITIAL_BIRD_COUNT * 0.06));
+  const totalEggs = Math.max(0, Math.round(baselineEggs + Math.sin(offsetDays) * 12));
   const layingRatePct = round(clamp(79.5 + progress * 4.8 + Math.cos(offsetDays * 1.4) * 1.1, 74, 90), 1);
   const feedConsumedKg = round(clamp(totalEggs * 0.059 + Math.sin(offsetDays * 0.8) * 1.7, 64, 82), 1);
-  const fcr = round(feedConsumedKg / (totalEggs * 0.06), 2);
+  const fcr = round(feedConsumedKg / Math.max(1, totalEggs * 0.06), 2);
   const avgTemp = round(clamp(25.1 + Math.cos(offsetDays * 0.7) * 0.8, 23, 28), 1);
   const maxNh3 = round(clamp(11 + Math.sin(offsetDays * 0.9) * 4.5, 6, 24), 1);
   const lightHours = round(clamp(13.7 + Math.cos(offsetDays * 0.5) * 0.3, 13, 14.8), 1);

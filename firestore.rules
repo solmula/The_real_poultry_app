@@ -1,0 +1,209 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function callerDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function callerDocExists() {
+      return signedIn() && exists(callerDocPath());
+    }
+
+    function callerDoc() {
+      return get(callerDocPath());
+    }
+
+    function callerEnabled() {
+      return callerDocExists() && callerDoc().data.disabled != true;
+    }
+
+    function roleIs(role) {
+      return callerEnabled() && callerDoc().data.role == role;
+    }
+
+    function isSuperAdmin() {
+      return roleIs('super_admin');
+    }
+
+    function isAdmin() {
+      return roleIs('admin') || isSuperAdmin();
+    }
+
+    function isOperator() {
+      return roleIs('operator') || isAdmin();
+    }
+
+    function isViewer() {
+      return roleIs('viewer');
+    }
+
+    function isFarmUser() {
+      return isSuperAdmin() || isAdmin() || isOperator() || isViewer();
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function callerFarmId() {
+      return callerDocExists() ? callerDoc().data.farm_id : null;
+    }
+
+    function farmIdIsValid(id) {
+      return id is string && id.size() > 0 && id.size() <= 120;
+    }
+
+    function sameFarmValue(value) {
+      return isSuperAdmin()
+        || (farmIdIsValid(callerFarmId()) ? value == callerFarmId() : value == null);
+    }
+
+    function sameFarmResource() {
+      return sameFarmValue(resource.data.farm_id);
+    }
+
+    function sameFarmRequest() {
+      return sameFarmValue(request.resource.data.farm_id);
+    }
+
+    function validRole(role) {
+      return role in ['super_admin', 'admin', 'operator', 'viewer'];
+    }
+
+    function validOptionalString(value, maxLen) {
+      return !(value is string) ? value == null : value.size() <= maxLen;
+    }
+
+    function validNotificationPrefs(prefs) {
+      return prefs is map
+        && prefs.keys().hasOnly(['CRITICAL', 'HIGH', 'WARNING', 'INFO'])
+        && prefs.CRITICAL == true
+        && prefs.HIGH is bool
+        && prefs.WARNING is bool
+        && prefs.INFO is bool;
+    }
+
+    function validBirdCount(value) {
+      return value is int && value >= 0 && value <= 1000000;
+    }
+
+    function validOptionalBirdCount(value) {
+      return value == null || validBirdCount(value);
+    }
+
+    function validRate(value, min, max) {
+      return (value is int || value is float) && value >= min && value <= max;
+    }
+
+    function validOptionalRate(value, min, max) {
+      return value == null || validRate(value, min, max);
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isSuperAdmin() || (isFarmUser() && sameFarmResource());
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'email', 'role', 'disabled', 'created_at', 'last_login', 'notification_prefs', 'fcm_token', 'farm_id'
+        ])
+        && validOptionalString(request.resource.data.email, 254)
+        && request.resource.data.role in ['operator', 'viewer']
+        && request.resource.data.disabled == false
+        && (!('notification_prefs' in request.resource.data) || validNotificationPrefs(request.resource.data.notification_prefs))
+        && (!('fcm_token' in request.resource.data) || validOptionalString(request.resource.data.fcm_token, 4096))
+        && (!('farm_id' in request.resource.data) || sameFarmValue(request.resource.data.farm_id));
+
+      allow update: if isSuperAdmin()
+        || (
+          isOwner(uid)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.disabled == resource.data.disabled
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.created_at == resource.data.created_at
+          && request.resource.data.farm_id == resource.data.farm_id
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['last_login', 'notification_prefs', 'fcm_token'])
+          && (!('notification_prefs' in request.resource.data) || validNotificationPrefs(request.resource.data.notification_prefs))
+          && (!('fcm_token' in request.resource.data) || validOptionalString(request.resource.data.fcm_token, 4096))
+        );
+
+      allow delete: if false;
+    }
+
+    match /farms/{farmId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update, delete: if isSuperAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'owner_uid', 'subscription_plan', 'created_at'])
+        && validOptionalString(request.resource.data.name, 120)
+        && validOptionalString(request.resource.data.owner_uid, 120)
+        && validOptionalString(request.resource.data.subscription_plan, 60)
+        && (!('created_at' in request.resource.data) || request.resource.data.created_at is timestamp);
+    }
+
+    match /flocks/{flockId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'farm_id', 'house_id', 'name', 'initial_bird_count', 'active_bird_count', 'mortality_count', 'feed_kg_per_bird_per_day', 'water_liters_per_bird_per_day', 'is_active', 'updated_at'
+        ])
+        && sameFarmRequest()
+        && validOptionalString(request.resource.data.house_id, 120)
+        && validOptionalString(request.resource.data.name, 120)
+        && validOptionalBirdCount(request.resource.data.initial_bird_count)
+        && validOptionalBirdCount(request.resource.data.active_bird_count)
+        && validOptionalBirdCount(request.resource.data.mortality_count)
+        && validOptionalRate(request.resource.data.feed_kg_per_bird_per_day, 0, 5)
+        && validOptionalRate(request.resource.data.water_liters_per_bird_per_day, 0, 20)
+        && request.resource.data.is_active is bool
+        && (!('updated_at' in request.resource.data) || request.resource.data.updated_at is timestamp);
+      allow delete: if isAdmin() && sameFarmResource();
+    }
+
+    match /flock_settings/{docId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['farm_id', 'active_flock_id', 'updated_at'])
+        && sameFarmRequest()
+        && validOptionalString(request.resource.data.active_flock_id, 120)
+        && (!('updated_at' in request.resource.data) || request.resource.data.updated_at is timestamp);
+      allow delete: if false;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update, delete: if false;
+    }
+
+    match /sensor_history/{docId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update, delete: if false;
+    }
+
+    match /daily_reports/{docId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update, delete: if false;
+    }
+
+    match /alerts_history/{docId} {
+      allow read: if isSuperAdmin() || (isFarmUser() && sameFarmResource());
+      allow create, update, delete: if false;
+    }
+
+    match /admin_audit_logs/{docId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /user_deletion_jobs/{uid} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

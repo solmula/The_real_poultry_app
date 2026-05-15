@@ -66,26 +66,103 @@ class AlertProvider extends ChangeNotifier {
 
   Future<void> acknowledgeAlert(AlertModel alert) async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final now = DateTime.now();
+    final nowSeconds = now.millisecondsSinceEpoch ~/ 1000;
+
     try {
-      await _db.ref('${FirebasePaths.alertsActive}/${alert.id}').update({
-        'acked': true,
-        'acked_by': uid,
-        'acked_at': now,
+      // ══════════════════════════════════════════════════════════════════════════
+      // FIRESTORE TRANSACTION: Prevent duplicate history entries
+      // ══════════════════════════════════════════════════════════════════════════
+      // PROBLEM: Without a transaction, race conditions occur when multiple devices
+      // acknowledge the same alert simultaneously:
+      //
+      // Timeline of race condition:
+      //   T1: Device A checks alert (acked=false)
+      //   T2: Device B checks alert (acked=false)
+      //   T3: Device A writes to history
+      //   T4: Device B writes to history  ← Duplicate entry created!
+      //
+      // SOLUTION: Use Firestore transaction with deterministic doc ID:
+      // 1. Transaction reads existing history doc (prevents duplicates)
+      // 2. Only writes if not already acknowledged (idempotent behavior)
+      // 3. Atomicity: all-or-nothing within this transaction
+      // 4. Consistency: Firestore is authoritative; RTDB is eventual consistent
+      //
+      // Atomicity guarantee: Only ONE of the concurrent calls will succeed in
+      // creating the history entry. Others will detect existing doc and return.
+      // ══════════════════════════════════════════════════════════════════════════
+
+      final historyDocId = 'alert_${alert.id}';
+      bool wasAcknowledged = false;
+
+      await _firestore.runTransaction<void>((transaction) async {
+        final docRef = _firestore.collection(FirebasePaths.alertsHistory).doc(historyDocId);
+        final existingDoc = await transaction.get(docRef);
+
+        if (existingDoc.exists) {
+          // ──────────────────────────────────────────────────────────────────────
+          // Alert already in history (acknowledged previously)
+          // Idempotent behavior: return without creating duplicate entry
+          // ──────────────────────────────────────────────────────────────────────
+          wasAcknowledged = true;
+          return;
+        }
+
+        // ────────────────────────────────────────────────────────────────────────
+        // Alert not in history yet: Add acknowledgment record atomically
+        // This write is protected by the transaction:
+        // - If another device writes between our check and write, Firestore
+        //   will abort this transaction automatically
+        // - We retry the transaction, which will then find the existing doc
+        //   and return idempotently
+        // ────────────────────────────────────────────────────────────────────────
+        transaction.set(docRef, {
+          'original_alert_id': alert.id,
+          'type': alert.type,
+          'value': alert.value,
+          'threshold': alert.threshold,
+          'severity': alert.severity,
+          'timestamp': FieldValue.serverTimestamp(),
+          'acked': true,
+          'acked_by': uid,
+          'acked_at': FieldValue.serverTimestamp(),
+        });
       });
-      await _firestore.collection(FirebasePaths.alertsHistory).add({
-        'type': alert.type,
-        'value': alert.value,
-        'threshold': alert.threshold,
-        'severity': alert.severity,
-        'timestamp': FieldValue.serverTimestamp(),
-        'acked': true,
-        'acked_by': uid,
-        'acked_at': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      _error = 'Failed to acknowledge alert';
+
+      // ════════════════════════════════════════════════════════════════════════════
+      // UPDATE RTDB: Non-critical real-time display update
+      // ════════════════════════════════════════════════════════════════════════════
+      // RATIONALE: RTDB is used only for filtering active/unacked alerts in real-time.
+      // Firestore alerts_history is the authoritative record.
+      // If RTDB update fails, the history is still correctly recorded in Firestore.
+      // This is acceptable because:
+      // - Listeners will eventually see the alert marked as acked via next sync
+      // - The alert won't appear in "active" list once RTDB catches up
+      // - History is permanently and correctly recorded in Firestore
+      // ════════════════════════════════════════════════════════════════════════════
+      try {
+        await _db.ref('${FirebasePaths.alertsActive}/${alert.id}').update({
+          'acked': true,
+          'acked_by': uid,
+          'acked_at': nowSeconds,
+        });
+      } catch (rtdbError) {
+        // Log but don't fail: Firestore write already succeeded
+        // The alert is acknowledged in the authoritative history
+        _error = 'Firestore updated but RTDB sync pending: $rtdbError';
+        notifyListeners();
+      }
+
+      _error = null;
       notifyListeners();
+    } catch (e) {
+      // ──────────────────────────────────────────────────────────────────────────
+      // Transaction failed: Automatically rolled back by Firestore
+      // Caller can retry or handle the error
+      // ──────────────────────────────────────────────────────────────────────────
+      _error = 'Failed to acknowledge alert: $e';
+      notifyListeners();
+      rethrow;
     }
   }
 

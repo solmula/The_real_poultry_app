@@ -56,4 +56,8 @@ class FirebasePaths {
   static const String dailyReports = 'daily_reports';
   static const String alertsHistory = 'alerts_history';
   static const String users = 'users';
+  static const String farmsCollection = 'farms';
+  static const String flockSettingsCollection = 'flock_settings';
+  static const String flockSettingsCurrentDoc = 'current';
+  static const String flocksCollection = 'flocks';
 }

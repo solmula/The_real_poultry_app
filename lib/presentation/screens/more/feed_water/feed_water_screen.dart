@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/flock_defaults.dart';
 import '../../../../data/providers/live_data_provider.dart';
+import '../../../../data/providers/flock_config_provider.dart';
 import '../../../../data/models/sensor_data.dart';
+import '../../../../data/models/flock_config.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
 class FeedWaterScreen extends StatelessWidget {
@@ -24,8 +27,8 @@ class FeedWaterScreen extends StatelessWidget {
         title: Text(l10n.feedWater, style: TextStyle(color: textColor, fontWeight: FontWeight.w700)),
         iconTheme: IconThemeData(color: textColor),
       ),
-      body: Consumer<LiveDataProvider>(
-        builder: (context, live, _) {
+      body: Consumer2<LiveDataProvider, FlockConfigProvider>(
+        builder: (context, live, flockConfigProvider, _) {
           final d = live.data;
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
@@ -90,7 +93,12 @@ class FeedWaterScreen extends StatelessWidget {
 
               _SectionLabel(text: 'Feed Estimate', isDark: isDark),
               const SizedBox(height: 10),
-              _EstimateCard(data: d, isDark: isDark, l10n: l10n),
+              _EstimateCard(
+                data: d,
+                flockConfig: flockConfigProvider.config,
+                isDark: isDark,
+                l10n: l10n,
+              ),
             ],
           );
         },
@@ -337,10 +345,16 @@ class _CircularGauge extends StatelessWidget {
 
 class _EstimateCard extends StatelessWidget {
   final SensorData? data;
+  final FlockConfig? flockConfig;
   final bool isDark;
   final AppLocalizations l10n;
 
-  const _EstimateCard({required this.data, required this.isDark, required this.l10n});
+  const _EstimateCard({
+    required this.data,
+    required this.flockConfig,
+    required this.isDark,
+    required this.l10n,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -350,8 +364,12 @@ class _EstimateCard extends StatelessWidget {
     final h1Kg = data?.h1FeedKg ?? 0;
     final h2Kg = data?.h2FeedKg ?? 0;
     final totalKg = h1Kg + h2Kg;
-    const avgDailyKg = 110.0;
-    final daysRemaining = totalKg > 0 ? (totalKg / avgDailyKg) : 0.0;
+    final activeBirds = flockConfig?.effectiveBirdCount;
+    final estimatedDailyKg = flockConfig?.estimatedDailyFeedKg();
+    final daysRemaining = totalKg > 0 && estimatedDailyKg != null && estimatedDailyKg > 0
+        ? totalKg / estimatedDailyKg
+        : null;
+    final feedRateText = flockConfig?.feedKgPerBirdPerDay ?? FlockDefaults.feedKgPerBirdPerDay;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -379,12 +397,16 @@ class _EstimateCard extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text(
-                  data == null ? '--' : '${daysRemaining.toStringAsFixed(1)} days',
+                  daysRemaining == null ? '--' : '${daysRemaining.toStringAsFixed(1)} days',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: textColor),
                 ),
-                const Text(
-                  'Based on \${totalKg.toStringAsFixed(1)} kg at ~\${avgDailyKg.toStringAsFixed(0)} kg/day',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                Text(
+                  activeBirds == null
+                      ? 'No active flock configured'
+                      : activeBirds <= 0
+                          ? 'Empty flock - no feed consumption'
+                          : 'Based on ${totalKg.toStringAsFixed(1)} kg, $activeBirds birds, and ~${feedRateText.toStringAsFixed(3)} kg/bird/day',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 ),
               ],
             ),

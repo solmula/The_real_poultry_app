@@ -4,6 +4,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../data/providers/live_data_provider.dart';
 import '../../../../data/providers/command_provider.dart';
 import '../../../../data/providers/auth_provider.dart';
+import '../../../../data/providers/threshold_provider.dart';
+import '../../../../data/models/threshold_model.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
 class OverrideScreen extends StatelessWidget {
@@ -29,6 +31,7 @@ class OverrideScreen extends StatelessWidget {
         builder: (context, live, cmd, auth, _) {
           final d = live.data;
           final isViewer = auth.isViewer;
+          final thresholdProvider = context.watch<ThresholdProvider>();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
@@ -78,6 +81,13 @@ class OverrideScreen extends StatelessWidget {
                     label: 'Set lights to \$val?',
                   lightsOverride: val == 'Auto' ? 'AUTO' : val.toUpperCase()),
               ),
+              if (auth.isAdmin) ...[
+                const SizedBox(height: 12),
+                _AdminThresholdEditorCard(
+                  isDark: isDark,
+                  thresholdProvider: thresholdProvider,
+                ),
+              ],
               const SizedBox(height: 20),
 
               _SectionLabel(text: 'Mechanical Controls', isDark: isDark),
@@ -543,6 +553,260 @@ class _ClearAllButton extends StatelessWidget {
           side: BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminThresholdEditorCard extends StatefulWidget {
+  final bool isDark;
+  final ThresholdProvider thresholdProvider;
+
+  const _AdminThresholdEditorCard({
+    required this.isDark,
+    required this.thresholdProvider,
+  });
+
+  @override
+  State<_AdminThresholdEditorCard> createState() => _AdminThresholdEditorCardState();
+}
+
+class _AdminThresholdEditorCardState extends State<_AdminThresholdEditorCard> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = widget.isDark ? AppColors.cardDark : AppColors.cardLight;
+    final textColor = widget.isDark ? AppColors.textLight : AppColors.textPrimary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.tune_rounded, color: AppColors.statusWarning, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'Admin Threshold Controls',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Only admins can update automation thresholds from this screen.',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _saving ? null : () => _openEditorDialog(context),
+              icon: const Icon(Icons.edit_rounded),
+              label: const Text('Edit Thresholds'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openEditorDialog(BuildContext context) async {
+    final current = widget.thresholdProvider.thresholds;
+
+    final tempFanLow = TextEditingController(text: current.tempFanLow.toString());
+    final tempFanHigh = TextEditingController(text: current.tempFanHigh.toString());
+    final tempHeatOn = TextEditingController(text: current.tempHeatOn.toString());
+    final nh3Warn = TextEditingController(text: current.nh3Warn.toString());
+    final nh3Critical = TextEditingController(text: current.nh3Critical.toString());
+    final co2High = TextEditingController(text: current.co2High.toString());
+    final rhHigh = TextEditingController(text: current.rhHigh.toString());
+    final waterPumpOn = TextEditingController(text: current.waterPumpOn.toString());
+    final waterPumpOff = TextEditingController(text: current.waterPumpOff.toString());
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Edit Thresholds'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ThresholdInputField(label: 'Fan ON low (°C)', controller: tempFanLow),
+                _ThresholdInputField(label: 'Fan ON high (°C)', controller: tempFanHigh),
+                _ThresholdInputField(label: 'Heat ON (°C)', controller: tempHeatOn),
+                _ThresholdInputField(label: 'NH3 warning (ppm)', controller: nh3Warn),
+                _ThresholdInputField(label: 'NH3 critical (ppm)', controller: nh3Critical),
+                _ThresholdInputField(label: 'CO2 high (ppm)', controller: co2High),
+                _ThresholdInputField(label: 'Humidity high (%)', controller: rhHigh),
+                _ThresholdInputField(label: 'Pump ON below (%)', controller: waterPumpOn),
+                _ThresholdInputField(label: 'Pump OFF above (%)', controller: waterPumpOff),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (saved != true) {
+      tempFanLow.dispose();
+      tempFanHigh.dispose();
+      tempHeatOn.dispose();
+      nh3Warn.dispose();
+      nh3Critical.dispose();
+      co2High.dispose();
+      rhHigh.dispose();
+      waterPumpOn.dispose();
+      waterPumpOff.dispose();
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final updated = ThresholdModel(
+        tempFanLow: _toDouble(tempFanLow.text, current.tempFanLow),
+        tempFanHigh: _toDouble(tempFanHigh.text, current.tempFanHigh),
+        tempFanOff: current.tempFanOff,
+        tempHeatOn: _toDouble(tempHeatOn.text, current.tempHeatOn),
+        tempHeatOff: current.tempHeatOff,
+        nh3Warn: _toDouble(nh3Warn.text, current.nh3Warn),
+        nh3High: current.nh3High,
+        nh3Critical: _toDouble(nh3Critical.text, current.nh3Critical),
+        co2High: _toDouble(co2High.text, current.co2High),
+        rhHigh: _toDouble(rhHigh.text, current.rhHigh),
+        waterPumpOn: _toDouble(waterPumpOn.text, current.waterPumpOn),
+        waterPumpOff: _toDouble(waterPumpOff.text, current.waterPumpOff),
+        lightOnHour: current.lightOnHour,
+        lightOnMinute: current.lightOnMinute,
+        lightOffHour: current.lightOffHour,
+        lightOffMinute: current.lightOffMinute,
+      );
+
+      final validationError = _validateThresholds(updated);
+      if (validationError != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(validationError),
+              backgroundColor: AppColors.statusCritical,
+            ),
+          );
+        }
+        return;
+      }
+
+      await widget.thresholdProvider.saveThresholds(updated);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Thresholds updated'),
+            backgroundColor: AppColors.statusGood,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update thresholds'),
+            backgroundColor: AppColors.statusCritical,
+          ),
+        );
+      }
+    } finally {
+      tempFanLow.dispose();
+      tempFanHigh.dispose();
+      tempHeatOn.dispose();
+      nh3Warn.dispose();
+      nh3Critical.dispose();
+      co2High.dispose();
+      rhHigh.dispose();
+      waterPumpOn.dispose();
+      waterPumpOff.dispose();
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  double _toDouble(String value, double fallback) {
+    return double.tryParse(value.trim()) ?? fallback;
+  }
+
+  String? _validateThresholds(ThresholdModel t) {
+    // Temperature: 14°C to 30°C
+    if (t.tempFanLow < 14 || t.tempFanLow > 30) return 'Temperature (Fan ON low) must be between 14°C and 30°C.';
+    if (t.tempFanHigh < 14 || t.tempFanHigh > 30) return 'Temperature (Fan ON high) must be between 14°C and 30°C.';
+    if (t.tempHeatOn < 14 || t.tempHeatOn > 30) return 'Temperature (Heat ON) must be between 14°C and 30°C.';
+
+    // Humidity: 50% to 90%
+    if (t.rhHigh < 50 || t.rhHigh > 90) return 'Humidity (high) must be between 50% and 90%.';
+
+    // Ammonia (NH3): 5 to 50 ppm
+    if (t.nh3Warn < 5 || t.nh3Warn > 50) return 'Ammonia (warning) must be between 5 and 50 ppm.';
+    if (t.nh3Critical < 5 || t.nh3Critical > 50) return 'Ammonia (critical) must be between 5 and 50 ppm.';
+    if (t.nh3Warn >= t.nh3Critical) return 'Ammonia warning level must be less than critical level.';
+
+    // CO2: 1000 to 5000 ppm
+    if (t.co2High < 1000 || t.co2High > 5000) return 'CO2 (high) must be between 1000 and 5000 ppm.';
+
+    // Water level: 10% to 90%
+    if (t.waterPumpOn < 10 || t.waterPumpOn > 90) return 'Water level (pump ON threshold) must be between 10% and 90%.';
+    if (t.waterPumpOff < 10 || t.waterPumpOff > 90) return 'Water level (pump OFF threshold) must be between 10% and 90%.';
+    if (t.waterPumpOn >= t.waterPumpOff) return 'Water pump ON threshold must be less than OFF threshold.';
+
+    // Light duration: 14 to 23 hours/day
+    final on = t.lightOnHour + (t.lightOnMinute / 60.0);
+    final off = t.lightOffHour + (t.lightOffMinute / 60.0);
+    double duration = off - on;
+    if (duration <= 0) duration += 24.0;
+    if (duration < 14 || duration > 23) return 'Light duration must be between 14 and 23 hours/day.';
+
+    return null;
+  }
+}
+
+class _ThresholdInputField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+
+  const _ThresholdInputField({
+    required this.label,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
         ),
       ),
     );

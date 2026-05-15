@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/firebase_paths.dart';
 import '../models/daily_report.dart';
+import '../models/flock_config.dart';
 
 class ProductionProvider extends ChangeNotifier {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -13,6 +14,7 @@ class ProductionProvider extends ChangeNotifier {
 
   ProductionEggData? _todayEggs;
   List<DailyReport> _historyReports = [];
+  FlockConfig? _flockConfig;
   bool _isLoadingToday = true;
   bool _isLoadingHistory = true;
   String? _error;
@@ -36,11 +38,34 @@ class ProductionProvider extends ChangeNotifier {
 
   int? get todayTotalEggs => _todayEggs?.totalToday ?? latestReport?.totalEggs;
 
+  FlockConfig? get flockConfig => _flockConfig;
+  int? get activeBirdCount => _flockConfig?.effectiveBirdCount;
+  double? get mortalityRatePercent => _flockConfig?.mortalityRatePercent;
+  double? get estimatedDailyFeedKg => _flockConfig?.estimatedDailyFeedKg();
+  double? get estimatedDailyWaterLiters => _flockConfig?.estimatedDailyWaterLiters();
+
+  void setFlockConfig(FlockConfig? config) {
+    final previousId = _flockConfig?.id;
+    final nextId = config?.id;
+    final previousBirds = _flockConfig?.effectiveBirdCount;
+    final nextBirds = config?.effectiveBirdCount;
+    if (previousId == nextId && previousBirds == nextBirds) {
+      return;
+    }
+    _flockConfig = config;
+    notifyListeners();
+  }
+
   double? get todayLayingRate {
-    const int totalHens = 1040;
     final eggCount = _todayEggs?.totalToday;
     if (eggCount == null || eggCount <= 0) return null;
-    return (eggCount / totalHens) * 100.0;
+
+    final birdCount = activeBirdCount;
+    if (birdCount == null) {
+      return latestReport?.layingRatePct;
+    }
+    if (birdCount <= 0) return null;
+    return (eggCount / birdCount) * 100.0;
   }
 
   double? get todayFeedConsumedKg => latestReport?.feedConsumedKg;

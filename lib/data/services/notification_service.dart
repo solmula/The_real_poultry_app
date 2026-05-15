@@ -209,15 +209,16 @@ class NotificationService {
 
       if (user == null) return;
 
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final farmId = userDoc.data()?['farm_id']?.toString();
+
       final token = await _fcm.getToken();
 
       if (token == null) return;
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .set(
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
         {
+          if (farmId != null) 'farm_id': farmId,
           'fcm_token': token,
         },
         SetOptions(merge: true),

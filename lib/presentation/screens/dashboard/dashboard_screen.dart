@@ -175,12 +175,16 @@ class DashboardScreen extends StatelessWidget {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
     final role = auth.role ?? 'operator';
-    final roleColor = role == 'admin'
+    final roleColor = role == 'super_admin'
+      ? AppColors.statusCritical
+      : role == 'admin'
         ? AppColors.primary
         : role == 'viewer'
             ? AppColors.statusOffline
             : AppColors.severityInfo;
-    final roleLabel = role == 'admin'
+    final roleLabel = role == 'super_admin'
+      ? 'Super Admin'
+      : role == 'admin'
         ? 'Admin'
         : role == 'viewer'
             ? 'Viewer'

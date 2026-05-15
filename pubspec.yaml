@@ -39,6 +39,7 @@ dependencies:
   connectivity_plus: ^6.0.0
 
   cupertino_icons: ^1.0.2
+  cloud_functions: ^5.1.0
 
 dev_dependencies:
   flutter_test:

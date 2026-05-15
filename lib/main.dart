@@ -9,12 +9,14 @@ import 'core/theme/app_theme.dart';
 import 'data/providers/auth_provider.dart';
 import 'data/providers/live_data_provider.dart';
 import 'data/providers/alert_provider.dart';
+import 'data/providers/farm_provider.dart';
 import 'data/providers/threshold_provider.dart';
 import 'data/providers/production_provider.dart';
 import 'data/providers/notification_pref_provider.dart';
 import 'data/providers/theme_provider.dart';
 import 'data/providers/command_provider.dart';
 import 'data/providers/language_provider.dart';
+import 'data/providers/flock_config_provider.dart';
 import 'data/services/notification_service.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/main_shell.dart';
@@ -31,7 +33,6 @@ void main() async {
   await NotificationService.instance.initialize();
   runApp(const PoultryApp());
 }
-
 class PoultryApp extends StatelessWidget {
   const PoultryApp({super.key});
 
@@ -40,8 +41,17 @@ class PoultryApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => FarmProvider()),
         ChangeNotifierProvider(create: (_) => LiveDataProvider()),
-        ChangeNotifierProvider(create: (_) => ProductionProvider()),
+        ChangeNotifierProvider(create: (_) => FlockConfigProvider()),
+        ChangeNotifierProxyProvider<FlockConfigProvider, ProductionProvider>(
+          create: (_) => ProductionProvider(),
+          update: (_, flockConfig, production) {
+            final provider = production ?? ProductionProvider();
+            provider.setFlockConfig(flockConfig.config);
+            return provider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => NotificationPrefProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AlertProvider()),
