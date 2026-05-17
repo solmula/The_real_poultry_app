@@ -76,10 +76,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allSystemsOnline => 'All systems online';
 
   @override
-  String get nodeAOffline => 'Node A offline — no sensor data';
+  String get nodeAOffline => 'Main controller offline — no sensor data';
 
   @override
-  String get nodeBOffline => 'Node B offline — limited data';
+  String get nodeBOffline =>
+      'Equipment controller offline — belt & egg data unavailable';
 
   @override
   String dataMayBeOutdated(String time) {
@@ -210,10 +211,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewOnly => 'View only';
 
   @override
-  String get nodeAHealth => 'Node A';
+  String get nodeAHealth => 'Main Controller';
 
   @override
-  String get nodeBHealth => 'Node B';
+  String get nodeBHealth => 'Equipment Controller';
 
   @override
   String get online => 'Online';

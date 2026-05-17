@@ -65,8 +65,8 @@ class AlertModel {
       case 'FEEDER_FAULT': return 'Feeder cycle did not complete — check trough';
       case 'NO_EGGS_2H': return 'No eggs detected on belt for 2 hours';
       case 'MANURE_BLOCKAGE': return 'Manure belt may be blocked — manual inspection';
-      case 'SLAVE2_OFFLINE': return 'ESP32 Node B offline — egg, manure, and feeder data unavailable';
-      case 'SLAVE1_OFFLINE': return 'ESP32 Node B offline — feed and water data unavailable';
+      case 'SLAVE2_OFFLINE': return 'Equipment controller offline — egg counting and belt data unavailable';
+      case 'SLAVE1_OFFLINE': return 'Equipment controller offline — feed and water data unavailable';
       case 'SHT85_FAULT': return 'Temperature sensor fault — using remaining sensors';
       case 'ZE03_FAULT': return 'Ammonia sensor fault — ventilation set to HIGH as precaution';
       case 'SCD41_FAULT': return 'CO2 sensor fault — CO2 monitoring unavailable';
@@ -100,7 +100,7 @@ class AlertModel {
       case 'NO_EGGS_2H': return 'Egg Collection';
       case 'MANURE_BLOCKAGE': return 'Manure Belt';
       case 'SLAVE1_OFFLINE':
-      case 'SLAVE2_OFFLINE': return 'Node B';
+      case 'SLAVE2_OFFLINE': return 'Equipment Controller';
       default: return 'System';
     }
   }

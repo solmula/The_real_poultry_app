@@ -37,7 +37,7 @@ class SystemStatusScreen extends StatelessWidget {
               _SectionLabel(text: 'ESP32 Nodes', isDark: isDark),
               const SizedBox(height: 10),
               _NodeCard(
-                label: 'Node A',
+                label: 'Main Controller',
                 subtitle: 'Climate sensing & control logic',
                 online: d?.nodeAOnline ?? false,
                 firmware: d?.firmwareVer,
@@ -48,8 +48,8 @@ class SystemStatusScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               _NodeCard(
-                label: 'Node B',
-                subtitle: 'Egg counting, feeders & manure belts',
+                label: 'Equipment Controller',
+                subtitle: 'Controls egg belts, feed belts & water pumps',
                 online: d?.nodeBOnline ?? false,
                 firmware: d?.nodeBFirmware,
                 uptimeHours: d?.nodeBUptimeHours,
@@ -429,11 +429,11 @@ class _SystemInfoCard extends StatelessWidget {
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
 
     final rows = [
-      ['Node A Firmware', data?.firmwareVer != null ? 'v${data!.firmwareVer}' : '--'],
-      ['Node B Firmware', data?.nodeBFirmware != null ? 'v${data!.nodeBFirmware}' : '--'],
-      ['Node A Uptime', _uptimeText(data?.uptimeHours)],
-      ['Node B Uptime', _uptimeText(data?.nodeBUptimeHours)],
-      ['Node A Free Heap', data?.heapFreeKb != null ? '${data!.heapFreeKb!.toStringAsFixed(1)} KB' : '--'],
+      ['Main Controller Firmware', data?.firmwareVer != null ? 'v${data!.firmwareVer}' : '--'],
+      ['Equipment Controller Firmware', data?.nodeBFirmware != null ? 'v${data!.nodeBFirmware}' : '--'],
+      ['Main Controller Online For', _uptimeText(data?.uptimeHours)],
+      ['Equipment Controller Online For', _uptimeText(data?.nodeBUptimeHours)],
+      ['Main Controller Memory', data?.heapFreeKb != null ? '${data!.heapFreeKb!.toStringAsFixed(1)} KB' : '--'],
     ];
 
     return Container(

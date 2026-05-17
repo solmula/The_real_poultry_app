@@ -44,9 +44,7 @@ class ProductionProvider extends ChangeNotifier {
     return DateTime.now().toIso8601String().split('T')[0];
   }
 
-  bool get _latestReportIsToday => latestReport != null && latestReport!.date == _todayDateString();
-
-  int? get todayTotalEggs => _latestReportIsToday ? latestReport?.totalEggs : _todayEggs?.totalToday ?? latestReport?.totalEggs;
+  int? get todayTotalEggs => _todayEggs?.totalToday;
 
   FlockConfig? get flockConfig => _flockConfig;
   int? get activeBirdCount => _flockConfig?.effectiveBirdCount;
@@ -67,21 +65,31 @@ class ProductionProvider extends ChangeNotifier {
   }
 
   double? get todayLayingRate {
-    if (_latestReportIsToday) return latestReport?.layingRatePct;
-
     final eggCount = _todayEggs?.totalToday;
     if (eggCount == null || eggCount <= 0) return null;
 
     final birdCount = activeBirdCount;
-    if (birdCount == null) {
-      return latestReport?.layingRatePct;
-    }
-    if (birdCount <= 0) return null;
+    if (birdCount == null || birdCount <= 0) return null;
     return (eggCount / birdCount) * 100.0;
   }
 
+  double? get todayH1LayingRate {
+    final h1Count = _todayEggs?.h1TotalToday;
+    final birdCount = activeBirdCount;
+    if (h1Count == null || birdCount == null || birdCount <= 0) return null;
+    return (h1Count / birdCount) * 100.0;
+  }
+
+  double? get todayH2LayingRate {
+    // Prefer explicit H2 laying rate if available
+    if (_todayEggs?.h2LayingRate != null) return _todayEggs?.h2LayingRate;
+    final h2Count = _todayEggs?.h2TotalToday;
+    final birdCount = activeBirdCount;
+    if (h2Count == null || birdCount == null || birdCount <= 0) return null;
+    return (h2Count / birdCount) * 100.0;
+  }
+
   double? get todayFeedConsumedKg {
-    if (_latestReportIsToday) return latestReport?.feedConsumedKg;
     if (_todayH1FeedKg == null && _todayH2FeedKg == null) return null;
     return (_todayH1FeedKg ?? 0.0) + (_todayH2FeedKg ?? 0.0);
   }
@@ -99,10 +107,11 @@ class ProductionProvider extends ChangeNotifier {
   }
 
   double? get eggTrendPercent {
-    final today = todayTotalEggs;
-    final average = sevenDayAverageEggs;
-    if (today == null || average == null || average == 0) return null;
-    return ((today - average) / average) * 100;
+    if (_historyReports.length < 2) return null;
+    final latest = _historyReports.first.totalEggs;
+    final previous = _historyReports[1].totalEggs;
+    if (previous <= 0) return null;
+    return ((latest - previous) / previous) * 100.0;
   }
 
   void startListening() {
@@ -172,6 +181,7 @@ class ProductionProvider extends ChangeNotifier {
     _historySubscription?.cancel();
     _historySubscription = _firestore
         .collection(FirebasePaths.dailyReports)
+        .where('date', isLessThan: _todayDateString())
         .orderBy('date', descending: true)
         .limit(7)
         .snapshots()

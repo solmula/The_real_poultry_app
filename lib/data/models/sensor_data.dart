@@ -41,6 +41,7 @@ class SensorData {
   final int? h1TotalToday;
   final int? h2TotalToday;
   final double? h2LayingRate;
+  final double? h1LayingRate;
   final String? h1T1ManureState;
   final String? h1T2ManureState;
   final String? h1T3ManureState;
@@ -71,7 +72,7 @@ class SensorData {
     this.h2LeftT1, this.h2LeftT2, this.h2LeftT3, this.h2LeftT4,
     this.h2RightT1, this.h2RightT2, this.h2RightT3, this.h2RightT4,
     this.totalToday, this.layingRate,
-    this.h1TotalToday, this.h2TotalToday, this.h2LayingRate,
+    this.h1TotalToday, this.h2TotalToday, this.h2LayingRate, this.h1LayingRate,
     this.h1T1ManureState, this.h1T2ManureState,
     this.h1T3ManureState, this.h1T4ManureState,
     this.h2T1ManureState, this.h2T2ManureState,
@@ -174,6 +175,7 @@ class SensorData {
       h1TotalToday: _toInt(eggsMap['h1_total_today']),
       h2TotalToday: _toInt(eggsMap['h2_total_today']),
       h2LayingRate: _toDouble(eggsMap['h2_laying_rate']),
+      h1LayingRate: _toDouble(eggsMap['h1_laying_rate']),
       h1T1ManureState: manureMap['h1_t1_state']?.toString(),
       h1T2ManureState: manureMap['h1_t2_state']?.toString(),
       h1T3ManureState: manureMap['h1_t3_state']?.toString(),

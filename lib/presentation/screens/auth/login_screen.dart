@@ -49,6 +49,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _login() async {
+    context.read<AuthProvider>().clearError();
     if (!_formKey.currentState!.validate()) return;
     await context.read<AuthProvider>().signIn(
           _emailController.text,
@@ -64,17 +65,24 @@ class _LoginScreenState extends State<LoginScreen>
       );
       return;
     }
-    await context
-        .read<AuthProvider>()
-        .sendPasswordReset(_emailController.text);
-    if (mounted) {
+    final auth = context.read<AuthProvider>();
+    final success = await auth.sendPasswordReset(_emailController.text);
+    if (!mounted) return;
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset email sent'),
-          backgroundColor: AppColors.statusGood,
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Failed to send reset email'),
+          backgroundColor: AppColors.statusCritical,
         ),
       );
+      return;
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Password reset email sent'),
+        backgroundColor: AppColors.statusGood,
+      ),
+    );
   }
 
   @override
@@ -228,6 +236,18 @@ class _LoginScreenState extends State<LoginScreen>
                                   if (auth.errorMessage == null) {
                                     return const SizedBox.shrink();
                                   }
+                                  final err = auth.errorMessage!;
+                                  final lower = err.toLowerCase();
+                                  final isAccountLevel = lower.contains('disabled') ||
+                                      lower.contains('administrator') ||
+                                      lower.contains('not found');
+                                  final color = isAccountLevel
+                                      ? AppColors.statusWarning
+                                      : AppColors.statusCritical;
+                                  final icon = isAccountLevel
+                                      ? Icons.account_circle_outlined
+                                      : Icons.error_outline_rounded;
+
                                   return Container(
                                     margin:
                                         const EdgeInsets.only(bottom: 16),
@@ -241,16 +261,13 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
-                                            Icons.error_outline_rounded,
-                                            color: Color(0xFFC62828),
-                                            size: 18),
-                                        const SizedBox(width: 10),
+                                        Icon(icon, color: color, size: 18),
+                                        const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
-                                            auth.errorMessage!,
-                                            style: const TextStyle(
-                                              color: Color(0xFFC62828),
+                                            err,
+                                            style: TextStyle(
+                                              color: color,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,
                                             ),

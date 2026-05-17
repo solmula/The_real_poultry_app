@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _roleCacheKey = 'cached_user_role';
+  static const String _farmIdCacheKey = 'cached_user_farm_id';
 
   AuthStatus _status = AuthStatus.unknown;
   User? _user;
@@ -46,21 +49,57 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _fetchUserRole(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
+      // Try cache first so app works offline
+      DocumentSnapshot doc;
+      try {
+        doc = await _firestore
+            .collection('users')
+            .doc(uid)
+            .get(const GetOptions(source: Source.cache));
+      } catch (_) {
+        // Cache miss — try network
+        doc = await _firestore
+            .collection('users')
+            .doc(uid)
+            .get(const GetOptions(source: Source.server));
+      }
+
       if (doc.exists) {
-        _role = doc.data()?['role']?.toString() ?? 'operator';
-        _farmId = doc.data()?['farm_id']?.toString();
+        final data = doc.data() as Map<String, dynamic>?;
+        _role = data?['role']?.toString() ?? 'operator';
+        _farmId = data?['farm_id']?.toString();
       } else {
         _errorMessage = 'Account not found. Contact your administrator.';
         await signOut();
         return;
       }
-      await _firestore.collection('users').doc(uid).update({
+
+      // Cache role/farm state locally so the app can open offline.
+      _cacheUserRole(_role, _farmId);
+
+      // Update last_login only when online — fire and forget, don't await
+      _firestore.collection('users').doc(uid).update({
         'last_login': FieldValue.serverTimestamp(),
-      });
+      }).catchError((_) {});
     } catch (e) {
-      _errorMessage = 'Failed to verify account. Please try again.';
-      await signOut();
+      final prefs = await SharedPreferences.getInstance();
+      _role = _role ?? prefs.getString(_roleCacheKey) ?? 'operator';
+      _farmId = _farmId ?? prefs.getString(_farmIdCacheKey);
+      _errorMessage = null;
+    }
+  }
+
+  Future<void> _cacheUserRole(String? role, String? farmId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_roleCacheKey, role ?? 'operator');
+      if (farmId == null) {
+        await prefs.remove(_farmIdCacheKey);
+      } else {
+        await prefs.setString(_farmIdCacheKey, farmId);
+      }
+    } catch (_) {
+      // Ignore local cache failures.
     }
   }
 
@@ -93,10 +132,15 @@ class AuthProvider extends ChangeNotifier {
     await _auth.signOut();
   }
 
-  Future<void> sendPasswordReset(String email) async {
+  Future<bool> sendPasswordReset(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
-    } catch (e) {}
+      return true;
+    } catch (e) {
+      _errorMessage = 'Could not send reset email. Check the address and try again.';
+      notifyListeners();
+      return false;
+    }
   }
 
   String _mapAuthError(String code) {

@@ -84,20 +84,18 @@ class CommandProvider extends ChangeNotifier {
   }
 
   Future<void> clearCommands() async {
-    try {
-      await _db.ref(FirebasePaths.commands).set({
-        'fan_override': '',
-        'heater_override': '',
-        'lights_override': '',
-        'trigger_feeder': '',
-        'trigger_manure': '',
-        'trigger_pump': '',
-        'issued_at': 0,
-        'expires_at': 0,
-        'issued_by': '',
-        'pending': false,
-      });
-    } catch (e) {}
+    await _db.ref(FirebasePaths.commands).set({
+      'fan_override': '',
+      'heater_override': '',
+      'lights_override': '',
+      'trigger_feeder': '',
+      'trigger_manure': '',
+      'trigger_pump': '',
+      'issued_at': 0,
+      'expires_at': 0,
+      'issued_by': '',
+      'pending': false,
+    });
   }
 
   void stopListening() {

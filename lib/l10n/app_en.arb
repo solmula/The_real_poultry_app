@@ -26,8 +26,8 @@
   "refreshing": "Refreshing...",
   "updated": "Updated",
   "allSystemsOnline": "All systems online",
-  "nodeAOffline": "Node A offline — no sensor data",
-  "nodeBOffline": "Node B offline — limited data",
+  "nodeAOffline": "Main controller offline — no sensor data",
+  "nodeBOffline": "Equipment controller offline — belt & egg data unavailable",
   "dataMayBeOutdated": "Data may be outdated — last update: {time}",
   "@dataMayBeOutdated": {
     "placeholders": {
@@ -81,8 +81,8 @@
   "system": "System",
   "viewOnly": "View only",
 
-  "nodeAHealth": "Node A",
-  "nodeBHealth": "Node B",
+  "nodeAHealth": "Main Controller",
+  "nodeBHealth": "Equipment Controller",
   "online": "Online",
   "offline": "Offline",
   "firmware": "Firmware",

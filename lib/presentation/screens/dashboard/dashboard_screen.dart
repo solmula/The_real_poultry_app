@@ -5,6 +5,7 @@ import '../../../core/utils/app_utils.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/live_data_provider.dart';
 import '../../../data/providers/alert_provider.dart';
+import '../../../data/providers/production_provider.dart';
 import '../../../data/models/sensor_data.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../more/settings/settings_screen.dart';
@@ -25,8 +26,11 @@ class DashboardScreen extends StatelessWidget {
       body: SafeArea(
         child: Consumer3<AuthProvider, LiveDataProvider, AlertProvider>(
           builder: (context, auth, live, alerts, _) {
+            final production = context.watch<ProductionProvider>();
             final isFirstLoad = live.isLoading && live.data == null;
             final l10n = AppLocalizations.of(context);
+            final todayEggs = production.todayTotalEggs ?? live.data?.totalToday;
+            final todayLayingRate = live.data?.layingRate;
 
             return RefreshIndicator(
               color: AppColors.primary,
@@ -71,7 +75,7 @@ class DashboardScreen extends StatelessWidget {
                           const SizedBox(height: 24),
                           _sectionLabel(context, l10n.eggProduction),
                           const SizedBox(height: 12),
-                          _buildEggCard(context, live.data, l10n),
+                          _buildEggCard(context, todayEggs, todayLayingRate, l10n),
                           const SizedBox(height: 24),
                           if (alerts.activeCount > 0) ...[
                             _sectionLabel(context, l10n.activeAlerts),
@@ -536,8 +540,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEggCard(BuildContext context, SensorData? d,
-      AppLocalizations l10n) {
+  Widget _buildEggCard(BuildContext context, int? totalEggs,
+      double? layingRate, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -566,7 +570,7 @@ class DashboardScreen extends StatelessWidget {
                         fontSize: 13, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text(
-                  AppUtils.formatInt(d?.totalToday),
+                  AppUtils.formatInt(totalEggs),
                   style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
@@ -583,13 +587,13 @@ class DashboardScreen extends StatelessWidget {
                       fontSize: 11, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               Text(
-                d?.layingRate != null
-                    ? '${d!.layingRate!.toStringAsFixed(1)}%'
+                layingRate != null
+                    ? '${layingRate.toStringAsFixed(1)}%'
                     : '--',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: (d?.layingRate ?? 0) >= 80
+                  color: (layingRate ?? 0) >= 80
                       ? AppColors.statusGood
                       : AppColors.statusWarning,
                 ),

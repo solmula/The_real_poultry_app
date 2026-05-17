@@ -268,7 +268,7 @@ class _AlertHistoryCard extends StatelessWidget {
       case 'HOPPER_LOW': return 'Feed hopper low';
       case 'HOPPER_CRITICAL': return 'Feed hopper critically low';
       case 'NO_EGGS_2H': return 'No eggs detected for 2 hours';
-      case 'SLAVE2_OFFLINE': return 'Node B went offline';
+      case 'SLAVE2_OFFLINE': return 'Equipment Controller went offline';
       default: return type.replaceAll('_', ' ');
     }
   }
@@ -281,7 +281,7 @@ class _AlertHistoryCard extends StatelessWidget {
     if (type.startsWith('WATER') || type == 'PUMP_FAULT') return 'Water';
     if (type.startsWith('HOPPER') || type.contains('FEEDER') || type.contains('CHAIN')) return 'Feed';
     if (type == 'NO_EGGS_2H') return 'Egg Collection';
-    if (type.contains('SLAVE') || type.contains('OFFLINE')) return 'Node B';
+    if (type.contains('SLAVE') || type.contains('OFFLINE')) return 'Equipment Controller';
     return 'System';
   }
 

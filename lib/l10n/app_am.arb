@@ -26,8 +26,8 @@
   "refreshing": "በማዘምን ላይ...",
   "updated": "ዘምኗል",
   "allSystemsOnline": "ሁሉም ስርዓቶች ተያይዘዋል",
-  "nodeAOffline": "Node A ተቋርጧል — የሴንሰር ዳታ የለም",
-  "nodeBOffline": "Node B ተቋርጧል — ውስን ዳታ",
+  "nodeAOffline": "Main controller offline — no sensor data",
+  "nodeBOffline": "Equipment controller offline — belt & egg data unavailable",
   "dataMayBeOutdated": "ዳታ ያረጀ ሊሆን ይችላል — የመጨረሻ ዝማኔ: {time}",
   "@dataMayBeOutdated": {
     "placeholders": {
@@ -81,8 +81,8 @@
   "system": "ስርዓት",
   "viewOnly": "ማየት ብቻ",
 
-  "nodeAHealth": "Node A",
-  "nodeBHealth": "Node B",
+  "nodeAHealth": "Main Controller",
+  "nodeBHealth": "Equipment Controller",
   "online": "ተያይዟል",
   "offline": "ተቋርጧል",
   "firmware": "ፈርምዌር",

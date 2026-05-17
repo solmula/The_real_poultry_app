@@ -271,8 +271,8 @@ class _OfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final offlineNodes = [
-      if (!nodeAOnline) 'Node A',
-      if (!nodeBOnline) 'Node B',
+      if (!nodeAOnline) 'Main Controller',
+      if (!nodeBOnline) 'Equipment Controller',
     ].join(' and ');
 
     return Container(

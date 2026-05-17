@@ -233,13 +233,13 @@ abstract class AppLocalizations {
   /// No description provided for @nodeAOffline.
   ///
   /// In en, this message translates to:
-  /// **'Node A offline — no sensor data'**
+  /// **'Main controller offline — no sensor data'**
   String get nodeAOffline;
 
   /// No description provided for @nodeBOffline.
   ///
   /// In en, this message translates to:
-  /// **'Node B offline — limited data'**
+  /// **'Equipment controller offline — belt & egg data unavailable'**
   String get nodeBOffline;
 
   /// No description provided for @dataMayBeOutdated.
@@ -491,13 +491,13 @@ abstract class AppLocalizations {
   /// No description provided for @nodeAHealth.
   ///
   /// In en, this message translates to:
-  /// **'Node A'**
+  /// **'Main Controller'**
   String get nodeAHealth;
 
   /// No description provided for @nodeBHealth.
   ///
   /// In en, this message translates to:
-  /// **'Node B'**
+  /// **'Equipment Controller'**
   String get nodeBHealth;
 
   /// No description provided for @online.

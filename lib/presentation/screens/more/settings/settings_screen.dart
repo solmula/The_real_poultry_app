@@ -151,11 +151,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     iconColor: AppColors.statusWarning,
                     isDark: isDark,
                     fields: [
-                      _FieldDef('Fan ON low',  _tempFanLow,  '°C'),
-                      _FieldDef('Fan ON high', _tempFanHigh, '°C'),
-                      _FieldDef('Fan OFF',     _tempFanOff,  '°C'),
-                      _FieldDef('Heat ON',     _tempHeatOn,  '°C'),
-                      _FieldDef('Heat OFF',    _tempHeatOff, '°C'),
+                      _FieldDef('Fan ON low',  _tempFanLow,  '°C', min: 0, max: 60, hintText: 'recommended: 18 – 24 °C'),
+                      _FieldDef('Fan ON high', _tempFanHigh, '°C', min: 0, max: 60, hintText: 'recommended: 24 – 28 °C'),
+                      _FieldDef('Fan OFF',     _tempFanOff,  '°C', min: 0, max: 60, hintText: 'recommended: 20 – 26 °C'),
+                      _FieldDef('Heat ON',     _tempHeatOn,  '°C', min: 0, max: 60, hintText: 'recommended: 10 – 18 °C'),
+                      _FieldDef('Heat OFF',    _tempHeatOff, '°C', min: 0, max: 60, hintText: 'recommended: 15 – 22 °C'),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -166,9 +166,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     iconColor: AppColors.statusCritical,
                     isDark: isDark,
                     fields: [
-                      _FieldDef('Warning',  _nh3Warn,     'ppm'),
-                      _FieldDef('High',     _nh3High,     'ppm'),
-                      _FieldDef('Critical', _nh3Critical, 'ppm'),
+                      _FieldDef('Warning',  _nh3Warn,     'ppm', min: 0, max: 100, hintText: 'recommended: 5 – 10 ppm'),
+                      _FieldDef('High',     _nh3High,     'ppm', min: 0, max: 100, hintText: 'recommended: 10 – 30 ppm'),
+                      _FieldDef('Critical', _nh3Critical, 'ppm', min: 0, max: 100, hintText: 'recommended: 30 – 50 ppm'),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -179,8 +179,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     iconColor: AppColors.severityInfo,
                     isDark: isDark,
                     fields: [
-                      _FieldDef('CO₂ high', _co2High, 'ppm'),
-                      _FieldDef('RH high',  _rhHigh,  '%'),
+                      _FieldDef('CO₂ high', _co2High, 'ppm', min: 0, max: 10000, hintText: 'recommended: 1000 – 1500 ppm'),
+                      _FieldDef('RH high',  _rhHigh,  '%', min: 1, max: 100, hintText: 'recommended: 60 – 80 %'),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -191,8 +191,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     iconColor: const Color(0xFF1565C0),
                     isDark: isDark,
                     fields: [
-                      _FieldDef('Pump ON below',  _waterPumpOn,  '%'),
-                      _FieldDef('Pump OFF above', _waterPumpOff, '%'),
+                      _FieldDef('Pump ON below',  _waterPumpOn,  '%', min: 0, max: 100, hintText: 'recommended: 30 – 40 %'),
+                      _FieldDef('Pump OFF above', _waterPumpOff, '%', min: 0, max: 100, hintText: 'recommended: 60 – 80 %'),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -241,6 +241,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _saveThresholds(ThresholdProvider thresh) async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Verify NH3 ordering: warn < high < critical
+    final nh3w = double.tryParse(_nh3Warn.text);
+    final nh3h = double.tryParse(_nh3High.text);
+    final nh3c = double.tryParse(_nh3Critical.text);
+    if (nh3w != null && nh3h != null && nh3w >= nh3h) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('NH3 Warning must be less than NH3 High'),
+              backgroundColor: AppColors.statusCritical),
+        );
+      }
+      return;
+    }
+    if (nh3h != null && nh3c != null && nh3h >= nh3c) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('NH3 High must be less than NH3 Critical'),
+              backgroundColor: AppColors.statusCritical),
+        );
+      }
+      return;
+    }
+    
     setState(() => _saving = true);
     try {
       final updated = ThresholdModel(
@@ -256,10 +282,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         rhHigh:         double.parse(_rhHigh.text),
         waterPumpOn:    double.parse(_waterPumpOn.text),
         waterPumpOff:   double.parse(_waterPumpOff.text),
-        lightOnHour:    thresh.thresholds.lightOnHour,
-        lightOnMinute:  thresh.thresholds.lightOnMinute,
-        lightOffHour:   thresh.thresholds.lightOffHour,
-        lightOffMinute: thresh.thresholds.lightOffMinute,
+        lightOnHour:    _lightOn.hour,
+        lightOnMinute:  _lightOn.minute,
+        lightOffHour:   _lightOff.hour,
+        lightOffMinute: _lightOff.minute,
       );
       await thresh.saveThresholds(updated);
       if (mounted) {
@@ -512,7 +538,12 @@ class _FieldDef {
   final String label;
   final TextEditingController controller;
   final String unit;
-  const _FieldDef(this.label, this.controller, this.unit);
+  final double? min;
+  final double? max;
+  final String hintText;
+
+  const _FieldDef(this.label, this.controller, this.unit,
+      {this.min, this.max, this.hintText = ''});
 }
 
 // ── Notification Preferences Card ────────────────────────────────────────────
@@ -751,14 +782,25 @@ class _ThresholdCard extends StatelessWidget {
                           suffixStyle: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary),
+                          hintText: f.hintText,
+                          hintStyle: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 10),
                           isDense: true,
                         ),
-                        validator: (v) =>
-                            double.tryParse(v ?? '') == null
-                                ? 'Invalid'
-                                : null,
+                        validator: (v) {
+                          final parsed = double.tryParse(v ?? '');
+                          if (parsed == null) return 'Invalid';
+                          if (f.min != null && parsed < f.min!) {
+                            return 'Min: ${f.min}';
+                          }
+                          if (f.max != null && parsed > f.max!) {
+                            return 'Max: ${f.max}';
+                          }
+                          return null;
+                        },
                       ),
                     ),
                   ],

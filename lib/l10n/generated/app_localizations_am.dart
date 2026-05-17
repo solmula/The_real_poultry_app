@@ -75,10 +75,11 @@ class AppLocalizationsAm extends AppLocalizations {
   String get allSystemsOnline => 'ሁሉም ስርዓቶች ተያይዘዋል';
 
   @override
-  String get nodeAOffline => 'Node A ተቋርጧል — የሴንሰር ዳታ የለም';
+  String get nodeAOffline => 'Main controller offline — no sensor data';
 
   @override
-  String get nodeBOffline => 'Node B ተቋርጧል — ውስን ዳታ';
+  String get nodeBOffline =>
+      'Equipment controller offline — belt & egg data unavailable';
 
   @override
   String dataMayBeOutdated(String time) {
@@ -208,10 +209,10 @@ class AppLocalizationsAm extends AppLocalizations {
   String get viewOnly => 'ማየት ብቻ';
 
   @override
-  String get nodeAHealth => 'Node A';
+  String get nodeAHealth => 'Main Controller';
 
   @override
-  String get nodeBHealth => 'Node B';
+  String get nodeBHealth => 'Equipment Controller';
 
   @override
   String get online => 'ተያይዟል';
