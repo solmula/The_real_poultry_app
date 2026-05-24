@@ -27,18 +27,28 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   FirebaseDatabase.instance.setPersistenceEnabled(true);
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+
   NotificationService.navigatorKey = navigatorKey;
-  await NotificationService.instance.initialize();
+
+  // Only offline-safe local setup before runApp
+  await NotificationService.instance.initializeLocal();
+
   runApp(const PoultryApp());
+
+  // Network-dependent FCM setup runs after app is already open
+  NotificationService.instance.initializeRemote();
 }
+
 class PoultryApp extends StatelessWidget {
   const PoultryApp({super.key});
 
@@ -152,7 +162,9 @@ class SplashScreen extends StatelessWidget {
             Text(
               l10n.smartFarmManagement,
               style: const TextStyle(
-                  fontSize: 14, color: AppColors.textSecondary),
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 48),
             const CircularProgressIndicator(

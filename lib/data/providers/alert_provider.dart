@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -147,10 +148,10 @@ class AlertProvider extends ChangeNotifier {
           'acked_at': nowSeconds,
         });
       } catch (rtdbError) {
-        // Log but don't fail: Firestore write already succeeded
-        // The alert is acknowledged in the authoritative history
-        _error = 'Firestore updated but RTDB sync pending: $rtdbError';
-        notifyListeners();
+        // Log RTDB failure but don't set error: Firestore write already succeeded.
+        // The alert is acknowledged in the authoritative Firestore history.
+        // RTDB is eventually consistent; this failure is non-critical.
+        debugPrint('RTDB sync failed after successful Firestore ack: $rtdbError');
       }
 
       _error = null;

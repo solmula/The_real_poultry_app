@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -18,40 +17,25 @@ class NotificationService {
   static final NotificationService instance = NotificationService._();
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-
   final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
 
   static const _channelId = 'poultry_alerts';
   static const _channelName = 'Poultry Alerts';
-  static const _channelDesc =
-      'Critical alerts from your poultry house';
+  static const _channelDesc = 'Critical alerts from your poultry house';
 
-  /// Navigation key (set from main.dart)
   static GlobalKey<NavigatorState>? navigatorKey;
+  static void Function(String title, String body, String severity)?
+      onForegroundAlert;
 
-  /// Foreground banner callback
-  static void Function(
-    String title,
-    String body,
-    String severity,
-  )? onForegroundAlert;
+  // ─────────────────────────────────────────────────────────────────────
+  // STEP 1 — Called before runApp(). Offline-safe. No network calls.
+  // ─────────────────────────────────────────────────────────────────────
+  Future<void> initializeLocal() async {
+    // Background handler — no network
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  Future<void> initialize() async {
-    /// 1 — Background handler
-    FirebaseMessaging.onBackgroundMessage(
-      firebaseMessagingBackgroundHandler,
-    );
-
-    /// 2 — Request permissions
-    await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      criticalAlert: true,
-    );
-
-    /// 3 — Android notification channel
+    // Android notification channel — local only
     const androidChannel = AndroidNotificationChannel(
       _channelId,
       _channelName,
@@ -61,15 +45,11 @@ class NotificationService {
       enableVibration: true,
     );
 
-    await _local
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(androidChannel);
+    final androidPlugin = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(androidChannel);
 
-    /// 4 — Local notifications initialization
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
+    // Local notifications init — no network
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -84,78 +64,77 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
-    /// 5 — Foreground message listener
+    // Message listeners — no network
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
-
-    /// 6 — App opened from background notification
-    FirebaseMessaging.onMessageOpenedApp.listen(
-      _onNotificationOpened,
-    );
-
-    /// 7 — App opened from terminated state
-    final initial = await _fcm.getInitialMessage();
-
-    if (initial != null) {
-      Future.delayed(
-        const Duration(milliseconds: 500),
-        () {
-          _navigateToAlerts();
-        },
-      );
-    }
-
-    /// 8 — iOS foreground presentation
-    await _fcm.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    /// 9 — Topic subscriptions
-    await _fcm.subscribeToTopic('alerts_critical');
-    await _fcm.subscribeToTopic('alerts_all');
-
-    /// 10 — Save token
-    await _saveTokenToFirestore();
-
-    _fcm.onTokenRefresh.listen(
-      (_) => _saveTokenToFirestore(),
-    );
-
-    debugPrint(
-      '[FCM] Initialized. Token: ${await _fcm.getToken()}',
-    );
+    FirebaseMessaging.onMessageOpenedApp.listen(_onNotificationOpened);
   }
 
-  /// ───────────────── Foreground Message ─────────────────
+  // ─────────────────────────────────────────────────────────────────────
+  // STEP 2 — Called after runApp(). Needs network. Never blocks startup.
+  // App is already open and running before any of this executes.
+  // ─────────────────────────────────────────────────────────────────────
+  Future<void> initializeRemote() async {
+    try {
+      await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        criticalAlert: true,
+      );
+    } catch (_) {}
+
+    try {
+      await _fcm.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (_) {}
+
+    try {
+      final initial = await _fcm.getInitialMessage();
+      if (initial != null) {
+        Future.delayed(
+          const Duration(milliseconds: 500),
+          () => _navigateToAlerts(),
+        );
+      }
+    } catch (_) {}
+
+    try {
+      await _fcm.subscribeToTopic('alerts_critical');
+      await _fcm.subscribeToTopic('alerts_all');
+    } catch (_) {}
+
+    try {
+      await _saveTokenToFirestore();
+      _fcm.onTokenRefresh.listen((_) => _saveTokenToFirestore());
+    } catch (_) {}
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Kept for backward compatibility — not used in main.dart anymore
+  // ─────────────────────────────────────────────────────────────────────
+  Future<void> initialize() async {
+    await initializeLocal();
+    initializeRemote(); // no await — background only
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Foreground message handler
+  // ─────────────────────────────────────────────────────────────────────
   void _onForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
-
     if (notification == null) return;
 
     final title = notification.title ?? 'Poultry Alert';
-
     final body = notification.body ?? '';
-
     final severity = message.data['severity'] ?? 'INFO';
 
-    debugPrint(
-      '[FCM] Foreground message received. '
-      'Callback registered: ${onForegroundAlert != null}',
-    );
-
-    /// Trigger in-app banner
     if (onForegroundAlert != null) {
-      debugPrint('[FCM] Triggering foreground banner');
-
-      onForegroundAlert!(
-        title,
-        body,
-        severity,
-      );
+      onForegroundAlert!(title, body, severity);
     }
 
-    /// Show local notification while app is foregrounded
     _local.show(
       notification.hashCode,
       title,
@@ -179,21 +158,17 @@ class NotificationService {
     );
   }
 
-  /// ───────────────── Notification Opened ─────────────────
+  // ─────────────────────────────────────────────────────────────────────
+  // Navigation handlers
+  // ─────────────────────────────────────────────────────────────────────
   void _onNotificationOpened(RemoteMessage message) {
-    debugPrint('[FCM] Notification opened from background');
-
     _navigateToAlerts();
   }
 
-  /// ───────────────── Local Notification Tap ─────────────────
   void _onNotificationTap(NotificationResponse response) {
-    debugPrint('[FCM] Local notification tapped');
-
     _navigateToAlerts();
   }
 
-  /// ───────────────── Navigation ─────────────────
   void _navigateToAlerts() {
     navigatorKey?.currentState?.pushNamedAndRemoveUntil(
       '/shell',
@@ -202,46 +177,46 @@ class NotificationService {
     );
   }
 
-  /// ───────────────── Save Token ─────────────────
+  // ─────────────────────────────────────────────────────────────────────
+  // Token management
+  // ─────────────────────────────────────────────────────────────────────
   Future<void> _saveTokenToFirestore() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-
       if (user == null) return;
-
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      
+      final token = await _fcm.getToken();
+      if (token == null) return;
+      print('FCM TOKEN: $token');
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final farmId = userDoc.data()?['farm_id']?.toString();
 
-      final token = await _fcm.getToken();
-
-      if (token == null) return;
-
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set(
         {
           if (farmId != null) 'farm_id': farmId,
           'fcm_token': token,
         },
         SetOptions(merge: true),
       );
-
-      debugPrint('[FCM] Token saved');
-    } catch (e) {
-      debugPrint('[FCM] Failed to save token: $e');
+    } catch (_) {
+      // Silently ignore — will retry on next token refresh
     }
   }
 
-  /// ───────────────── Severity Color ─────────────────
   Color _severityColor(String severity) {
     switch (severity) {
       case 'CRITICAL':
         return const Color(0xFFB71C1C);
-
       case 'HIGH':
         return const Color(0xFFE65100);
-
       case 'WARNING':
         return const Color(0xFFF57F17);
-
       default:
         return const Color(0xFF1565C0);
     }

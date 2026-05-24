@@ -78,18 +78,22 @@ class NotificationPrefProvider extends ChangeNotifier {
       _warning = _toBool(prefs['WARNING']) ?? true;
       _info = _toBool(prefs['INFO']) ?? true;
 
-      await docRef.set(
-        {
-          if (farmId != null) 'farm_id': farmId,
-          'notification_prefs': {
-            'CRITICAL': true,
-            'HIGH': _high,
-            'WARNING': _warning,
-            'INFO': _info,
+      // Only write to Firestore if at least one preference differs from its default value
+      final shouldWrite = _high != true || _warning != true || _info != true;
+      if (shouldWrite) {
+        await docRef.set(
+          {
+            if (farmId != null) 'farm_id': farmId,
+            'notification_prefs': {
+              'CRITICAL': true,
+              'HIGH': _high,
+              'WARNING': _warning,
+              'INFO': _info,
+            },
           },
-        },
-        SetOptions(merge: true),
-      );
+          SetOptions(merge: true),
+        );
+      }
     } catch (e) {
       _error = 'Failed to load notification preferences';
     } finally {

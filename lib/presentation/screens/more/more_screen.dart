@@ -465,7 +465,7 @@ class _AppInfoCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary)),
           const SizedBox(height: 4),
-          const Text('v1.0.0 — Final Year Thesis',
+          const Text('v1.0.0',
               style: TextStyle(
                   fontSize: 11, color: AppColors.textSecondary)),
         ],

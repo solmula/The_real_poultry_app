@@ -7,6 +7,7 @@ import '../../data/providers/live_data_provider.dart';
 import '../../data/providers/alert_provider.dart';
 import '../../data/providers/threshold_provider.dart';
 import '../../data/providers/command_provider.dart';
+import '../../data/providers/flock_config_provider.dart';
 import '../../data/services/notification_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'dashboard/dashboard_screen.dart';
@@ -53,6 +54,7 @@ class _MainShellState extends State<MainShell> {
       context.read<AlertProvider>().startListening();
       context.read<ThresholdProvider>().startListening();
       context.read<CommandProvider>().startListening();
+      context.read<FlockConfigProvider>().startListening();
 
       // Register foreground alert banner callback
       NotificationService.onForegroundAlert = (title, body, severity) {

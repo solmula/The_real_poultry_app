@@ -67,10 +67,17 @@ function buildMailer() {
     return null;
   }
 
+  // Validate SMTP port: must be within 1-65535, default to 587
+  let port = Number(process.env.SMTP_PORT || 587);
+  if (Number.isNaN(port) || port < 1 || port > 65535) {
+    logger.warn('Invalid SMTP_PORT, using default 587');
+    port = 587;
+  }
+
   return {
     transporter: nodemailer.createTransport({
       host,
-      port: Number(process.env.SMTP_PORT || 587),
+      port,
       secure: String(process.env.SMTP_SECURE || 'false') === 'true',
       auth: user && pass ? { user, pass } : undefined,
     }),
@@ -859,32 +866,37 @@ exports.escalateAlert = onCall({ region: 'us-central1' }, async (request) => {
 });
 
 // Scheduled analytics aggregation (daily)
-const { schedule } = require('firebase-functions/v2');
-exports.aggregateAnalytics = schedule('every 24 hours').onRun(async (context) => {
-  logger.log('Running scheduled aggregateAnalytics');
-  const now = Date.now();
-  const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+exports.aggregateAnalytics = onSchedule(
+  {
+    schedule: '0 0 * * *', // run at 00:00 every day
+    timeZone: 'Africa/Addis_Ababa',
+  },
+  async (context) => {
+    logger.log('Running scheduled aggregateAnalytics');
+    const now = Date.now();
+    const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
 
-  try {
-    const q = await db.collection(sensorHistoryCollection).where('ts', '>=', admin.firestore.Timestamp.fromDate(dayAgo)).get();
-    const buckets = {};
-    q.docs.forEach((d) => {
-      const data = d.data();
-      const farmId = data.farm_id || 'unknown';
-      if (!buckets[farmId]) buckets[farmId] = { count: 0, tempSum: 0 };
-      buckets[farmId].count += 1;
-      buckets[farmId].tempSum += Number(data.temperature || 0);
-    });
+    try {
+      const q = await db.collection(sensorHistoryCollection).where('ts', '>=', admin.firestore.Timestamp.fromDate(dayAgo)).get();
+      const buckets = {};
+      q.docs.forEach((d) => {
+        const data = d.data();
+        const farmId = data.farm_id || 'unknown';
+        if (!buckets[farmId]) buckets[farmId] = { count: 0, tempSum: 0 };
+        buckets[farmId].count += 1;
+        buckets[farmId].tempSum += Number(data.temperature || 0);
+      });
 
-    const writes = Object.entries(buckets).map(([farmId, stats]) => {
-      const avgTemp = stats.tempSum / stats.count;
-      return db.collection(dailyReportsCollection).add({ farm_id: farmId, avg_temperature: avgTemp, sample_count: stats.count, ts: admin.firestore.FieldValue.serverTimestamp() });
-    });
+      const writes = Object.entries(buckets).map(([farmId, stats]) => {
+        const avgTemp = stats.tempSum / stats.count;
+        return db.collection(dailyReportsCollection).add({ farm_id: farmId, avg_temperature: avgTemp, sample_count: stats.count, ts: admin.firestore.FieldValue.serverTimestamp() });
+      });
 
-    await Promise.all(writes);
-    return { success: true, processedFarms: Object.keys(buckets).length };
-  } catch (err) {
-    logger.error('aggregateAnalytics failed', { error: err?.message ?? String(err) });
-    return { success: false, error: err?.message ?? String(err) };
+      await Promise.all(writes);
+      return { success: true, processedFarms: Object.keys(buckets).length };
+    } catch (err) {
+      logger.error('aggregateAnalytics failed', { error: err?.message ?? String(err) });
+      throw err;
+    }
   }
-});
+);

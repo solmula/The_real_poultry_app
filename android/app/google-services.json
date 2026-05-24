@@ -1,3 +1,10 @@
+// SECURITY WARNING: This file contains Firebase API Keys
+// These keys MUST be restricted in Google Cloud Console to:
+// - Android package: com.example.poultry_automation
+// - Certificate SHA-1 and SHA-256 fingerprints
+// - Firebase services only
+// Failure to restrict keys exposes the app to unauthorized access.
+// See: https://firebase.google.com/docs/projects/api-keys
 {
   "project_info": {
     "project_number": "1089601888148",

@@ -36,8 +36,6 @@ class SensorData {
   final int? h2RightT2;
   final int? h2RightT3;
   final int? h2RightT4;
-  final int? totalToday;
-  final double? layingRate;
   final int? h1TotalToday;
   final int? h2TotalToday;
   final double? h2LayingRate;
@@ -71,7 +69,6 @@ class SensorData {
     this.h1RightT1, this.h1RightT2, this.h1RightT3, this.h1RightT4,
     this.h2LeftT1, this.h2LeftT2, this.h2LeftT3, this.h2LeftT4,
     this.h2RightT1, this.h2RightT2, this.h2RightT3, this.h2RightT4,
-    this.totalToday, this.layingRate,
     this.h1TotalToday, this.h2TotalToday, this.h2LayingRate, this.h1LayingRate,
     this.h1T1ManureState, this.h1T2ManureState,
     this.h1T3ManureState, this.h1T4ManureState,
@@ -82,6 +79,22 @@ class SensorData {
     this.nodeBUptimeHours, this.nodeBLastHeartbeat,
     this.timestamp,
   });
+
+  // ─── Computed getters ────────────────────────────────────────────────────
+  /// Sum of all 16 tier egg counts (8 per house × 2 tiers each).
+  int get totalToday {
+    return (h1LeftT1 ?? 0) + (h1LeftT2 ?? 0) + (h1LeftT3 ?? 0) + (h1LeftT4 ?? 0) +
+        (h1RightT1 ?? 0) + (h1RightT2 ?? 0) + (h1RightT3 ?? 0) + (h1RightT4 ?? 0) +
+        (h2LeftT1 ?? 0) + (h2LeftT2 ?? 0) + (h2LeftT3 ?? 0) + (h2LeftT4 ?? 0) +
+        (h2RightT1 ?? 0) + (h2RightT2 ?? 0) + (h2RightT3 ?? 0) + (h2RightT4 ?? 0);
+  }
+
+  /// Laying rate as a percentage: (totalToday / 1040 birds) × 100, rounded to 1 decimal.
+  double get layingRate {
+    const int totalBirds = 1040;
+    final rate = (totalToday / totalBirds) * 100.0;
+    return double.parse(rate.toStringAsFixed(1));
+  }
 
   // ─── Tier helpers ────────────────────────────────────────────────────────
   int? h1TierLeft(int tier) {
@@ -170,8 +183,6 @@ class SensorData {
       h2RightT2: _toInt(eggsMap['h2_right_t2']),
       h2RightT3: _toInt(eggsMap['h2_right_t3']),
       h2RightT4: _toInt(eggsMap['h2_right_t4']),
-      totalToday: _toInt(eggsMap['total_today']),
-      layingRate: _toDouble(eggsMap['laying_rate']),
       h1TotalToday: _toInt(eggsMap['h1_total_today']),
       h2TotalToday: _toInt(eggsMap['h2_total_today']),
       h2LayingRate: _toDouble(eggsMap['h2_laying_rate']),
@@ -220,9 +231,8 @@ class SensorData {
 
   String get lastUpdateText {
     if (timestamp == null) return 'Never';
-    final ts = timestamp! > 9999999999
-        ? timestamp!
-        : timestamp! * 1000;
+    // timestamp is always Unix epoch seconds as written by ESP32 and Cloud Functions.
+    final ts = timestamp! * 1000;
     final dataTime = DateTime.fromMillisecondsSinceEpoch(ts);
     final diff = DateTime.now().difference(dataTime);
     if (diff.inSeconds < 60) return 'just now';

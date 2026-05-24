@@ -30,11 +30,31 @@ class DashboardScreen extends StatelessWidget {
             final isFirstLoad = live.isLoading && live.data == null;
             final l10n = AppLocalizations.of(context);
             final todayEggs = production.todayTotalEggs ?? live.data?.totalToday;
-            final todayLayingRate = live.data?.layingRate;
+            double? todayLayingRate;
+            // Prefer the production provider's laying rate (computed from archived/production data)
+            if (production.todayLayingRate != null) {
+              todayLayingRate = production.todayLayingRate;
+            } else {
+              final birdCount = production.activeBirdCount;
+              if (production.todayTotalEggs != null && birdCount != null && birdCount > 0) {
+                // If we have today's egg total and flock size, compute percentage
+                todayLayingRate = (production.todayTotalEggs! / birdCount) * 100.0;
+              } else if (live.data?.layingRate != null) {
+                // Fallback to live RTDB value. The RTDB value may be a fraction (e.g. 0.86) —
+                // convert to percent when it's <= 1.1 to handle both fractional and percent formats.
+                final raw = live.data!.layingRate!;
+                todayLayingRate = raw <= 1.1 ? raw * 100.0 : raw;
+              } else {
+                todayLayingRate = null;
+              }
+            }
 
             return RefreshIndicator(
               color: AppColors.primary,
               onRefresh: () async {
+                final liveDataProvider = context.read<LiveDataProvider>();
+                liveDataProvider.stopListening();
+                liveDataProvider.startListening();
                 await Future.delayed(const Duration(milliseconds: 500));
               },
               child: CustomScrollView(

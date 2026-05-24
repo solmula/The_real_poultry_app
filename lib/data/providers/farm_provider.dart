@@ -40,7 +40,7 @@ class FarmProvider extends ChangeNotifier {
       }
       load();
     });
-    load();
+    // No bare load() here — auth listener handles it
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _getWithCacheFallback(
@@ -106,12 +106,14 @@ class FarmProvider extends ChangeNotifier {
           .whereType<Map<String, dynamic>>()
           .map(_buildFarmFromMap)
           .toList();
+      if (_farms.isEmpty) return false;
+
       final currentFarmId = prefs.getString(_cachedCurrentFarmIdKey) ?? '';
       _currentFarm = _farms.firstWhere(
         (farm) => farm.id == currentFarmId,
         orElse: () => _farms.first,
       );
-      return _farms.isNotEmpty;
+      return true;
     } catch (_) {
       return false;
     }
@@ -127,10 +129,19 @@ class FarmProvider extends ChangeNotifier {
       return;
     }
 
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    // ── Step 1: Serve from cache immediately ──────────────────────────
+    final cacheLoaded = await _loadFarmCache();
+    if (cacheLoaded) {
+      _isLoading = false;
+      _error = null;
+      notifyListeners(); // UI renders right away from cache
+    } else {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+    }
 
+    // ── Step 2: Refresh from Firestore in background ──────────────────
     try {
       final userDoc = await _getWithCacheFallback(
         _firestore.collection(FirebasePaths.users).doc(user.uid),
@@ -157,11 +168,9 @@ class FarmProvider extends ChangeNotifier {
       }
       await _saveFarmCache();
     } catch (e) {
-      final loaded = await _loadFarmCache();
-      if (!loaded) {
-        _error = 'Failed to load farm information';
-      } else {
-        _error = null;
+      // Network unavailable — if cache already loaded, stay silent
+      if (!cacheLoaded) {
+        _error = 'Could not load farm data. Connect to the internet for first use.';
       }
     } finally {
       _isLoading = false;

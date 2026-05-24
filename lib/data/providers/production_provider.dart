@@ -69,11 +69,16 @@ class ProductionProvider extends ChangeNotifier {
     if (eggCount == null || eggCount <= 0) return null;
 
     final birdCount = activeBirdCount;
-    if (birdCount == null || birdCount <= 0) return null;
-    return (eggCount / birdCount) * 100.0;
+    if (birdCount != null && birdCount > 0) {
+      return (eggCount / birdCount) * 100.0;
+    }
+
+    return _todayEggs?.layingRate;
   }
 
   double? get todayH1LayingRate {
+    // Note: divides by total flock bird count, not per-house count.
+    // This gives percentage of total flock laying in this house, not per-house laying rate.
     final h1Count = _todayEggs?.h1TotalToday;
     final birdCount = activeBirdCount;
     if (h1Count == null || birdCount == null || birdCount <= 0) return null;
@@ -81,8 +86,8 @@ class ProductionProvider extends ChangeNotifier {
   }
 
   double? get todayH2LayingRate {
-    // Prefer explicit H2 laying rate if available
-    if (_todayEggs?.h2LayingRate != null) return _todayEggs?.h2LayingRate;
+    // Note: divides by total flock bird count, not per-house count.
+    // This gives percentage of total flock laying in this house, not per-house laying rate.
     final h2Count = _todayEggs?.h2TotalToday;
     final birdCount = activeBirdCount;
     if (h2Count == null || birdCount == null || birdCount <= 0) return null;
@@ -94,7 +99,18 @@ class ProductionProvider extends ChangeNotifier {
     return (_todayH1FeedKg ?? 0.0) + (_todayH2FeedKg ?? 0.0);
   }
 
+  /// Today's FCR calculated from current feed consumed and egg total.
+  /// FCR = feed (kg) / (total eggs × 0.06 kg per egg)
   double? get todayFcr {
+    final feedConsumed = todayFeedConsumedKg;
+    final eggs = todayTotalEggs;
+    if (feedConsumed == null || eggs == null || eggs <= 0) return null;
+    return feedConsumed / (eggs * 0.06);
+  }
+
+  /// Returns yesterday's FCR because today's daily report has not yet been archived.
+  /// Uses latestReport.feedConsumedKg which is the most recently archived daily record.
+  double? get yesterdayFcr {
     final report = latestReport;
     if (report == null || report.totalEggs <= 0) return null;
     return report.feedConsumedKg / (report.totalEggs * 0.06);
@@ -103,7 +119,7 @@ class ProductionProvider extends ChangeNotifier {
   double? get sevenDayAverageEggs {
     if (_historyReports.isEmpty) return null;
     final total = _historyReports.fold<int>(0, (sum, report) => sum + report.totalEggs);
-    return total / _historyReports.length;
+    return total / 7.0;  // Always divide by 7 for true 7-day average
   }
 
   double? get eggTrendPercent {
@@ -258,11 +274,6 @@ class ProductionEggData {
   final int? h2RightT2;
   final int? h2RightT3;
   final int? h2RightT4;
-  final int? totalToday;
-  final int? h1TotalToday;
-  final int? h2TotalToday;
-  final double? layingRate;
-  final double? h2LayingRate;
 
   const ProductionEggData({
     this.h1LeftT1,
@@ -281,12 +292,25 @@ class ProductionEggData {
     this.h2RightT2,
     this.h2RightT3,
     this.h2RightT4,
-    this.totalToday,
-    this.h1TotalToday,
-    this.h2TotalToday,
-    this.layingRate,
-    this.h2LayingRate,
   });
+
+  int get h1TotalToday {
+    return (h1LeftT1 ?? 0) + (h1LeftT2 ?? 0) + (h1LeftT3 ?? 0) + (h1LeftT4 ?? 0) +
+        (h1RightT1 ?? 0) + (h1RightT2 ?? 0) + (h1RightT3 ?? 0) + (h1RightT4 ?? 0);
+  }
+
+  int get h2TotalToday {
+    return (h2LeftT1 ?? 0) + (h2LeftT2 ?? 0) + (h2LeftT3 ?? 0) + (h2LeftT4 ?? 0) +
+        (h2RightT1 ?? 0) + (h2RightT2 ?? 0) + (h2RightT3 ?? 0) + (h2RightT4 ?? 0);
+  }
+
+  int get totalToday => h1TotalToday + h2TotalToday;
+
+  double get layingRate {
+    const int totalBirds = 1040;
+    final rate = (totalToday / totalBirds) * 100.0;
+    return double.parse(rate.toStringAsFixed(1));
+  }
 
   factory ProductionEggData.fromJson(Map<dynamic, dynamic> json) {
     final eggs = json['eggs'] is Map ? json['eggs'] as Map<dynamic, dynamic> : json;
@@ -308,11 +332,6 @@ class ProductionEggData {
       h2RightT2: _toInt(eggs['h2_right_t2']),
       h2RightT3: _toInt(eggs['h2_right_t3']),
       h2RightT4: _toInt(eggs['h2_right_t4']),
-      totalToday: _toInt(eggs['total_today']),
-      h1TotalToday: _toInt(eggs['h1_total_today']),
-      h2TotalToday: _toInt(eggs['h2_total_today']),
-      layingRate: _toDouble(eggs['laying_rate']),
-      h2LayingRate: _toDouble(eggs['h2_laying_rate']),
     );
   }
 

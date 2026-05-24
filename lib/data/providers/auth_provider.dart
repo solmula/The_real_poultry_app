@@ -39,53 +39,61 @@ class AuthProvider extends ChangeNotifier {
       _role = null;
       _farmId = null;
       _status = AuthStatus.unauthenticated;
-    } else {
-      _user = user;
-      await _fetchUserRole(user.uid);
-      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return;
     }
+
+    _user = user;
+
+    // ── Load from SharedPreferences immediately — no network needed ──
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _role = prefs.getString(_roleCacheKey) ?? 'operator';
+      _farmId = prefs.getString(_farmIdCacheKey);
+    } catch (_) {
+      _role = 'operator';
+      _farmId = null;
+    }
+
+    // Show the app RIGHT NOW before any network call
+    _status = AuthStatus.authenticated;
     notifyListeners();
+
+    // Refresh from Firestore in background — no await
+    _fetchUserRole(user.uid);
   }
 
   Future<void> _fetchUserRole(String uid) async {
     try {
-      // Try cache first so app works offline
-      DocumentSnapshot doc;
-      try {
-        doc = await _firestore
-            .collection('users')
-            .doc(uid)
-            .get(const GetOptions(source: Source.cache));
-      } catch (_) {
-        // Cache miss — try network
-        doc = await _firestore
-            .collection('users')
-            .doc(uid)
-            .get(const GetOptions(source: Source.server));
-      }
+      // Cache only — never wait for network during background refresh
+      final doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get(const GetOptions(source: Source.cache));
 
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>?;
         _role = data?['role']?.toString() ?? 'operator';
         _farmId = data?['farm_id']?.toString();
       } else {
-        _errorMessage = 'Account not found. Contact your administrator.';
-        await signOut();
+        // Doc not in cache — do nothing, keep SharedPreferences values
+        // Will correct itself next time the user is online
         return;
       }
 
-      // Cache role/farm state locally so the app can open offline.
+      // Persist refreshed values to SharedPreferences
       _cacheUserRole(_role, _farmId);
 
-      // Update last_login only when online — fire and forget, don't await
+      // Update last_login only when online — fire and forget
       _firestore.collection('users').doc(uid).update({
         'last_login': FieldValue.serverTimestamp(),
       }).catchError((_) {});
+
+      notifyListeners();
     } catch (e) {
-      final prefs = await SharedPreferences.getInstance();
-      _role = _role ?? prefs.getString(_roleCacheKey) ?? 'operator';
-      _farmId = _farmId ?? prefs.getString(_farmIdCacheKey);
-      _errorMessage = null;
+      // Cache miss or any error — silently keep the values already
+      // loaded from SharedPreferences in _onAuthStateChanged.
+      // Do NOT set _errorMessage here — the app opened fine.
     }
   }
 
@@ -110,7 +118,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _auth.signInWithEmailAndPassword(
         email: email.trim(),
-        password: password.trim(),
+        password: password,
       );
       _isLoading = false;
       notifyListeners();
@@ -137,7 +145,8 @@ class AuthProvider extends ChangeNotifier {
       await _auth.sendPasswordResetEmail(email: email.trim());
       return true;
     } catch (e) {
-      _errorMessage = 'Could not send reset email. Check the address and try again.';
+      _errorMessage =
+          'Could not send reset email. Check the address and try again.';
       notifyListeners();
       return false;
     }
