@@ -238,17 +238,6 @@ class UserManagementProvider extends ChangeNotifier {
     final farmId = doc.data()?['farm_id']?.toString();
     return _CallerContext(role: role, farmId: farmId);
   }
-
-  String _mapAuthError(String code) {
-    switch (code) {
-      case 'email-already-in-use':   return 'This email is already registered.';
-      case 'invalid-email':          return 'Invalid email address.';
-      case 'weak-password':          return 'Password must be at least 6 characters.';
-      case 'wrong-password':         return 'Admin password is incorrect.';
-      case 'network-request-failed': return 'No internet connection.';
-      default:                       return 'Error: $code';
-    }
-  }
 }
 
 class _CallerContext {

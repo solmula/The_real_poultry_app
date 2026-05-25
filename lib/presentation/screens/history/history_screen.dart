@@ -640,7 +640,6 @@ class _HistoryScreenState extends State<HistoryScreen>
           color: AppColors.primary, strokeWidth: 2));
 
   Widget _emptyWidget(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -801,8 +800,6 @@ class _MultiLineChart extends StatefulWidget {
 }
 
 class _MultiLineChartState extends State<_MultiLineChart> {
-  int? _touchedIndex;
-
   @override
   Widget build(BuildContext context) {
     final records = widget.records;
@@ -1293,7 +1290,7 @@ class _SummaryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
     final last7 =

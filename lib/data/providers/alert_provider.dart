@@ -94,7 +94,6 @@ class AlertProvider extends ChangeNotifier {
       // ══════════════════════════════════════════════════════════════════════════
 
       final historyDocId = 'alert_${alert.id}';
-      bool wasAcknowledged = false;
 
       await _firestore.runTransaction<void>((transaction) async {
         final docRef = _firestore.collection(FirebasePaths.alertsHistory).doc(historyDocId);
@@ -105,7 +104,6 @@ class AlertProvider extends ChangeNotifier {
           // Alert already in history (acknowledged previously)
           // Idempotent behavior: return without creating duplicate entry
           // ──────────────────────────────────────────────────────────────────────
-          wasAcknowledged = true;
           return;
         }
 

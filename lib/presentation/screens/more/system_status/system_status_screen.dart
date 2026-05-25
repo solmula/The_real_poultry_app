@@ -259,8 +259,7 @@ class _LiveSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
-    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
-
+    
     final tiles = [
       {
         'label': 'NH3',
@@ -347,8 +346,6 @@ class _StatusTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
-
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

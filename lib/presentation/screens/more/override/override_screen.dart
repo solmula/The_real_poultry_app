@@ -109,12 +109,12 @@ class OverrideScreen extends StatelessWidget {
                 iconColor: Colors.white,
                 iconBg: const Color(0xFF6D4C41),
                 options: const [
-                  'H1-T1', 'H1-T2', 'H1-T3', 'H1-T4',
-                  'H2-T1', 'H2-T2', 'H2-T3', 'H2-T4', 'All'
+                  'H1 Motor A', 'H1 Motor B',
+                  'H2 Motor A', 'H2 Motor B', 'All'
                 ],
                 firebaseValues: const [
-                  'h1_t1', 'h1_t2', 'h1_t3', 'h1_t4',
-                  'h2_t1', 'h2_t2', 'h2_t3', 'h2_t4', 'all'
+                  'h1_motor_a', 'h1_motor_b',
+                  'h2_motor_a', 'h2_motor_b', 'all'
                 ],
                 isDark: isDark,
                 disabled: commandDisabled,
@@ -151,7 +151,6 @@ class OverrideScreen extends StatelessWidget {
     );
   }
 
-  // FIX (Bug 5): Added mounted check after async showDialog before using context.
   Future<void> _sendWithConfirm(
     BuildContext context,
     CommandProvider cmd,
@@ -179,7 +178,6 @@ class OverrideScreen extends StatelessWidget {
         ],
       ),
     );
-    // FIX (Bug 5): Guard against stale context after async gap.
     if (!context.mounted) return;
     if (confirmed == true) {
       await cmd.sendCommand(
@@ -519,8 +517,7 @@ class _TriggerCard extends StatelessWidget {
                   decoration: BoxDecoration(
                       color: iconBg.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: iconBg.withOpacity(0.3))),
+                      border: Border.all(color: iconBg.withOpacity(0.3))),
                   child: Text(options[i],
                       style: TextStyle(
                           fontSize: 12,
@@ -609,8 +606,7 @@ class _ClearAllButton extends StatelessWidget {
                 fontWeight: FontWeight.w600)),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          side:
-              BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
+          side: BorderSide(color: AppColors.statusCritical.withOpacity(0.4)),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

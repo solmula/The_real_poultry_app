@@ -72,7 +72,7 @@ class AuthProvider extends ChangeNotifier {
           .get(const GetOptions(source: Source.cache));
 
       if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
+        final data = doc.data();
         _role = data?['role']?.toString() ?? 'operator';
         _farmId = data?['farm_id']?.toString();
       } else {

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class ThresholdModel {
   final double tempFanLow;
   final double tempFanHigh;

@@ -42,7 +42,7 @@ class DashboardScreen extends StatelessWidget {
               } else if (live.data?.layingRate != null) {
                 // Fallback to live RTDB value. The RTDB value may be a fraction (e.g. 0.86) —
                 // convert to percent when it's <= 1.1 to handle both fractional and percent formats.
-                final raw = live.data!.layingRate!;
+                final raw = live.data!.layingRate;
                 todayLayingRate = raw <= 1.1 ? raw * 100.0 : raw;
               } else {
                 todayLayingRate = null;
@@ -65,8 +65,8 @@ class DashboardScreen extends StatelessWidget {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         if (live.error != null) _buildErrorBanner(live.error!),
-                        if (live.isStale && !live.isLoading)
-                          _buildStaleBanner(live.lastUpdateText, l10n),
+                        // if (live.isStale && !live.isLoading)
+                        //   _buildStaleBanner(live.lastUpdateText, l10n),
                         const SizedBox(height: 16),
                         if (isFirstLoad) ...[
                           const _ShimmerBox(height: 48, borderRadius: 14),

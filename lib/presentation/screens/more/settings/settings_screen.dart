@@ -356,7 +356,9 @@ class _LanguageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
-    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
+    
+
+    
     final lang = context.watch<LanguageProvider>();
 
     return Container(
@@ -385,7 +387,7 @@ class _LanguageCard extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: textColor)),
+                        color: isDark ? AppColors.textLight : AppColors.textPrimary)),
                 const SizedBox(height: 2),
                 Text(
                   lang.isAmharic ? 'አማርኛ' : 'English',
@@ -559,7 +561,6 @@ class _NotificationPreferencesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
-    final textColor = isDark ? AppColors.textLight : AppColors.textPrimary;
 
     return Container(
       padding: const EdgeInsets.all(16),
