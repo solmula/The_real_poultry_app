@@ -274,6 +274,7 @@ class ProductionEggData {
   final int? h2RightT2;
   final int? h2RightT3;
   final int? h2RightT4;
+  final int? totalTodayOverride;
 
   const ProductionEggData({
     this.h1LeftT1,
@@ -292,6 +293,7 @@ class ProductionEggData {
     this.h2RightT2,
     this.h2RightT3,
     this.h2RightT4,
+    this.totalTodayOverride,
   });
 
   int get h1TotalToday {
@@ -304,7 +306,7 @@ class ProductionEggData {
         (h2RightT1 ?? 0) + (h2RightT2 ?? 0) + (h2RightT3 ?? 0) + (h2RightT4 ?? 0);
   }
 
-  int get totalToday => h1TotalToday + h2TotalToday;
+  int get totalToday => totalTodayOverride ?? (h1TotalToday + h2TotalToday);
 
   double get layingRate {
     const int totalBirds = 1040;
@@ -332,6 +334,7 @@ class ProductionEggData {
       h2RightT2: _toInt(eggs['h2_right_t2']),
       h2RightT3: _toInt(eggs['h2_right_t3']),
       h2RightT4: _toInt(eggs['h2_right_t4']),
+      totalTodayOverride: _toInt(eggs['total_today']),
     );
   }
 

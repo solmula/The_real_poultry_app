@@ -686,7 +686,7 @@ class _InviteDialogState extends State<_InviteDialog> {
                 const Text('Farm', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedFarmId,
+                  initialValue: _selectedFarmId,
                   items: widget.farms
                       .map((farm) => DropdownMenuItem(
                             value: farm.id,
